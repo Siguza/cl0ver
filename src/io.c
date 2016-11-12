@@ -110,7 +110,6 @@ void dict_get_bytes(void *dict, size_t dictlen, const char *key, void *buf, uint
 {
     io_service_t service = _io_get_service("IOHDIXController"); // TODO
     //io_service_t service = _io_get_service(NULL);
-    //usleep(1);
     io_connect_t client = _io_spawn_client(service, dict, dictlen);
     _io_get_bytes(service, key, buf, buflen);
     _io_release_client(client);

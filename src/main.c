@@ -1,4 +1,4 @@
-#include <stdbool.h>            // bool, true, false
+//#include <stdbool.h>            // bool, true, false
 #include <string.h>             // strcmp
 #include <unistd.h>             // sync
 
@@ -34,13 +34,29 @@ int main(int argc, const char **argv)
 
     // 8,4 ffffff80044ef1f0 S __ZTV8OSString
 
-    bool do_panic = false;
-    size_t off = 1;
-    if(argc > off && strcmp(argv[off], "panic") == 0)
+    //bool do_panic = false;
+    int action = 0;
+    size_t off;
+    for(off = 1; off < argc; ++off)
     {
-        do_panic = true;
-        ++off;
+        if(strcmp(argv[off], "panic") == 0)
+        {
+            action = 1;
+        }
+        else if(strcmp(argv[off], "dump") == 0)
+        {
+            action = 2;
+        }
+        else
+        {
+            break;
+        }
     }
+    /*if(argc > off && strcmp(argv[off], "panic") == 0)
+    {
+        //do_panic = true;
+        ++off;
+    }*/
     if(argc > off)
     {
         log_init(argv[off]);
@@ -57,14 +73,26 @@ int main(int argc, const char **argv)
 
     sanity();
 
-    if(do_panic)
+    switch(action)
+    {
+        case 1:
+            panic_leak();
+            break;
+        case 2:
+            dump();
+            break;
+        default:
+            exploit();
+            break;
+    }
+    /*if(do_panic)
     {
         panic_leak();
     }
     else
     {
         exploit();
-    }
+    }*/
 
     log_release();
     return 0;

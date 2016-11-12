@@ -85,12 +85,14 @@ do \
 #   define MACH_MAGIC MH_MAGIC_64
     typedef struct mach_header_64 mach_hdr_t;
     typedef struct segment_command_64 mach_seg_t;
+    typedef struct section_64 mach_sec_t;
 #else
 #   define ADDR "0x%08x"
     typedef uint32_t addr_t;
 #   define MACH_MAGIC MH_MAGIC
     typedef struct mach_header mach_hdr_t;
     typedef struct segment_command mach_seg_t;
+    typedef struct section mach_sec_t;
 #endif
 
 #define SIZE "0x%016lx"
