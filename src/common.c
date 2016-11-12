@@ -1,9 +1,12 @@
 #include <errno.h>              // errno
+#include <stdbool.h>            // bool, true
 #include <stdio.h>              // FILE, stderr, fopen, fclose
 #include <string.h>             // strerror
 #include <unistd.h>             // getppid
 
 #include "common.h"
+
+bool verbose = true;
 
 FILE *logfile = NULL;
 

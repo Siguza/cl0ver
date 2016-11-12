@@ -1,4 +1,4 @@
-TARGET = tfp0
+TARGET = ios9tfp0
 INCDIR = include
 MIGDIR = mig
 LIBKERN ?= /usr/include

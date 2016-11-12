@@ -1,8 +1,26 @@
+#include <stdbool.h>            // bool, true, false
+#include <string.h>             // strcmp
 #include <unistd.h>             // sync
 
-#include "common.h"             // ERROR, log_init, log_release
-#include "exploit.h"            // exploit
-#include "io.h"                 // OSString
+#include "common.h"             // ASSERT, ERROR, log_init, log_release
+#include "exploit.h"            // exploit, panic_leak
+#include "io.h"                 // OSData, OSString
+
+static void sanity()
+{
+    // Just in case...
+    sync();
+
+#ifdef __LP64__
+    ASSERT(sizeof(OSData) == 12 * sizeof(uint32_t));
+    ASSERT(sizeof(OSString) == 8 * sizeof(uint32_t));
+#else
+    ASSERT(sizeof(OSData) == 7 * sizeof(uint32_t));
+    ASSERT(sizeof(OSString) == 5 * sizeof(uint32_t));
+#endif
+
+    // TODO: sysctl("hw.cputype")
+}
 
 int main(int argc, const char **argv)
 {
@@ -14,14 +32,39 @@ int main(int argc, const char **argv)
     // 6,1 ffffff80044eda08 S __ZTV11OSMetaClass
     // 8,4 ffffff80044ef460 S __ZTV11OSMetaClass
 
-    log_init(argc > 1 ? argv[1] : NULL);
-    if(argc > 2)
+    // 8,4 ffffff80044ef1f0 S __ZTV8OSString
+
+    bool do_panic = false;
+    size_t off = 1;
+    if(argc > off && strcmp(argv[off], "panic") == 0)
+    {
+        do_panic = true;
+        ++off;
+    }
+    if(argc > off)
+    {
+        log_init(argv[off]);
+        ++off;
+    }
+    else
+    {
+        log_init(NULL);
+    }
+    if(argc > off)
     {
         ERROR("Too many arguments");
     }
-    sync();
 
-    exploit();
+    sanity();
+
+    if(do_panic)
+    {
+        panic_leak();
+    }
+    else
+    {
+        exploit();
+    }
 
     log_release();
     return 0;
