@@ -4,6 +4,8 @@
 #include <string.h>             // strerror
 #include <unistd.h>             // getppid
 
+#include "try.h"                // THROW
+
 #include "common.h"
 
 bool verbose = true;
@@ -22,7 +24,7 @@ void log_init(const char *file)
         FILE *f = fopen(file, "wb");
         if(f == NULL)
         {
-            ERROR("Failed to open logfile: %s", strerror(errno));
+            THROW("Failed to open logfile (%s)", strerror(errno));
         }
         logfile = f;
     }
@@ -33,5 +35,6 @@ void log_release()
     if(logfile != NULL && logfile != stderr)
     {
         fclose(logfile);
+        log_init(NULL);
     }
 }

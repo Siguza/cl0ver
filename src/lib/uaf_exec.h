@@ -1,5 +1,5 @@
-#ifndef LIBEXPLOIT_H
-#define LIBEXPLOIT_H
+#ifndef UAF_EXEC_H
+#define UAF_EXEC_H
 
 #include "io.h"                 // OSString
 

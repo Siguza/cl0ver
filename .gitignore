@@ -1,4 +1,6 @@
 .DS_Store
 /data
 /include
-/ios9tfp0
+/obj
+/cl0ver
+/libcl0ver.a

