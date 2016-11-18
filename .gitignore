@@ -1,6 +1,6 @@
 .DS_Store
+/build
 /data
 /include
-/obj
 /cl0ver
 /libcl0ver.a
