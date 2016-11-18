@@ -2,7 +2,7 @@
 #include <unistd.h>             // sync
 
 #include "common.h"             // ASSERT, WARN, log_init, log_release
-#include "exploit.h"            // exploit, panic_leak
+#include "exploit.h"            // dump_kernel, exploit, panic_leak
 #include "io.h"                 // OSData, OSString
 
 static void sanity()
@@ -73,7 +73,7 @@ int main(int argc, const char **argv)
             panic_leak();
             break;
         case 2:
-            dump();
+            dump_kernel("kernel.bin");
             break;
         default:
             exploit();
