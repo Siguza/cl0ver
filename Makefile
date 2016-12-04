@@ -7,8 +7,8 @@ LIBKERN ?= /usr/include
 OSFMK ?= /usr/include
 FRAMEWORKS ?= /System/Library/Frameworks/
 IGCC ?= xcrun -sdk iphoneos gcc
-IGCC_FLAGS = -arch armv7 -arch arm64 -Wall -O3 -std=c11 -fmodules -I./$(SRCDIR)/lib -I./$(INCDIR) -I./$(MIGDIR) $(CFLAGS)
-LD_FLAGS = -Wl,-dead_strip -L. $(LDFLAGS)
+IGCC_FLAGS = -arch armv7 -arch arm64 -Wall -O3 -std=c11 -miphoneos-version-min=9.0 -fmodules -I./$(SRCDIR)/lib -I./$(INCDIR) -I./$(MIGDIR) $(CFLAGS)
+LD_FLAGS = -Wl,-dead_strip -L. -Wl,-pagezero_size,0x4000 -Wl,-image_base,0x100000000 $(LDFLAGS)
 LD_LIBS = -framework IOKit -l$(TARGET) $(LIBS)
 SIGN ?= xcrun -sdk iphoneos codesign
 SIGN_FLAGS ?= -s -

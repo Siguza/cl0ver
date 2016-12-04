@@ -44,7 +44,9 @@ extern FILE *logfile;
 
 void log_init(const char *file);
 
-void log_release();
+void log_release(void);
+
+void sanity(void);
 
 #define ASSERT(expr) \
 do \
@@ -122,5 +124,7 @@ typedef struct
     char *buf;
     size_t len;
 } file_t;
+
+#define MIN(x, y) ((x) > (y) ? (y) : (x))
 
 #endif

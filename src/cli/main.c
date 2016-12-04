@@ -1,25 +1,9 @@
 #include <string.h>             // strcmp
 #include <unistd.h>             // sync
 
-#include "common.h"             // ASSERT, WARN, log_init, log_release
+#include "common.h"             // ASSERT, WARN, log_init, log_release, sanity
 #include "exploit.h"            // dump_kernel, exploit, panic_leak
 #include "io.h"                 // OSData, OSString
-
-static void sanity()
-{
-    // In case we panic...
-    sync();
-
-#ifdef __LP64__
-    ASSERT(sizeof(OSData) == 12 * sizeof(uint32_t));
-    ASSERT(sizeof(OSString) == 8 * sizeof(uint32_t));
-#else
-    ASSERT(sizeof(OSData) == 7 * sizeof(uint32_t));
-    ASSERT(sizeof(OSString) == 5 * sizeof(uint32_t));
-#endif
-
-    // TODO: sysctl("hw.cputype")
-}
 
 int main(int argc, const char **argv)
 {

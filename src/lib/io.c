@@ -1,4 +1,5 @@
 #include <stdint.h>             // uint32_t, uint64_t
+#include <unistd.h>             // usleep
 
 #include <mach/kern_return.h>   // kern_return_t, KERN_SUCCESS
 #include <mach/mach_error.h>    // mach_error_string
@@ -16,13 +17,13 @@
 #endif
 
 #include "common.h"             // DEBUG
-#include "try.h"                // THROW, TRY, RETHROW
+#include "try.h"                // THROW, TRY, FINALLY
 
 #include "io.h"
 
 /* Helper functions */
 
-static mach_port_t get_io_master_port()
+static mach_port_t get_io_master_port(void)
 {
     static mach_port_t master = MACH_PORT_NULL;
     if(master == MACH_PORT_NULL)
@@ -39,16 +40,18 @@ static mach_port_t get_io_master_port()
 
 /* Building blocks */
 
-io_service_t _io_get_service(const char *name)
+io_service_t _io_get_service(void)
 {
-    // TODO: static?
-    DEBUG("Getting IO service handle...");
-    io_service_t service = IOServiceGetMatchingService(get_io_master_port(), IOServiceMatching(name == NULL ? "AppleKeyStore" : name));
-    if(!MACH_PORT_VALID(service))
+    static io_service_t service = MACH_PORT_NULL;
+    if(service == MACH_PORT_NULL)
     {
-        THROW("Failed to get IO service handle (port = 0x%08x, name= %s)", service, name);
+        DEBUG("Getting IO service handle...");
+        service = IOServiceGetMatchingService(get_io_master_port(), IOServiceMatching("AppleMobileFileIntegrity"));
+        if(!MACH_PORT_VALID(service))
+        {
+            THROW("Failed to get IO service handle (port = 0x%08x)", service);
+        }
     }
-
     return service;
 }
 
@@ -57,6 +60,7 @@ io_connect_t _io_spawn_client(io_service_t service, void *dict, size_t dictlen)
     DEBUG("Spawning user client / Parsing dictionary...");
     io_connect_t client = MACH_PORT_NULL;
     kern_return_t err;
+    usleep(100); // TODO: DEBUG
     kern_return_t ret = io_service_open_extended(service, mach_task_self(), 0, NDR_record, dict, dictlen, &err, &client);
     if(ret != KERN_SUCCESS || err != KERN_SUCCESS || !MACH_PORT_VALID(client))
     {
@@ -65,37 +69,79 @@ io_connect_t _io_spawn_client(io_service_t service, void *dict, size_t dictlen)
     return client;
 }
 
+io_iterator_t _io_iterator(io_service_t service)
+{
+    DEBUG("Creating dict iterator...");
+    io_iterator_t it = 0;
+    kern_return_t ret = IORegistryEntryCreateIterator(service, "IOService", kIORegistryIterateRecursively, &it);
+    if(ret != KERN_SUCCESS)
+    {
+        THROW("Failed to create iterator (ret = %u: %s)", ret, mach_error_string(ret));
+    }
+    return it;
+}
+
+io_object_t _io_next(io_iterator_t it)
+{
+    DEBUG("Getting next element from iterator...");
+    io_object_t o = IOIteratorNext(it);
+    if(o == 0)
+    {
+        THROW("Failed to get next iterator element");
+    }
+    return o;
+}
+
+void _io_get(io_object_t o, const char *key, void *buf, uint32_t *buflen)
+{
+    DEBUG("Retrieving bytes...");
+    kern_return_t ret = IORegistryEntryGetProperty(o, key, buf, buflen);
+    if(ret != KERN_SUCCESS)
+    {
+        THROW("Failed to get bytes (ret = %u: %s)", ret, mach_error_string(ret));
+    }
+}
+
 void _io_get_bytes(io_service_t service, const char *key, void *buf, uint32_t *buflen)
 {
-    kern_return_t ret;
+    //kern_return_t ret;
 
-    DEBUG("Creating dict iterator...");
+    /*DEBUG("Creating dict iterator...");
     io_iterator_t it = 0;
     ret = IORegistryEntryCreateIterator(service, "IOService", kIORegistryIterateRecursively, &it);
     if(ret != KERN_SUCCESS)
     {
         THROW("Failed to create iterator (ret = %u: %s)", ret, mach_error_string(ret));
-    }
-
-    DEBUG("Getting next element from iterator...");
-    io_object_t o = IOIteratorNext(it);
-    if(o == 0)
-    {
+    }*/
+    io_iterator_t it = _io_iterator(service);
+    TRY
+    ({
+        /*DEBUG("Getting next element from iterator...");
+        io_object_t o = IOIteratorNext(it);
+        if(o == 0)
+        {
+            THROW("Failed to get next iterator element");
+        }*/
+        io_object_t o = _io_next(it);
+        TRY
+        ({
+            /*DEBUG("Retrieving bytes...");
+            ret = IORegistryEntryGetProperty(o, key, buf, buflen);
+            if(ret != KERN_SUCCESS)
+            {
+                THROW("Failed to get bytes (ret = %u: %s)", ret, mach_error_string(ret));
+            }*/
+            _io_get(o, key, buf, buflen);
+        })
+        FINALLY
+        ({
+            IOObjectRelease(o);
+        })
+    })
+    FINALLY
+    ({
         IOObjectRelease(it);
-        THROW("Failed to get next element (o = %u)", o);
-    }
-
-    DEBUG("Retrieving bytes...");
-    ret = IORegistryEntryGetProperty(o, key, buf, buflen);
-    if(ret != KERN_SUCCESS)
-    {
-        IOObjectRelease(o);
-        IOObjectRelease(it);
-        THROW("Failed to get bytes (ret = %u: %s)", ret, mach_error_string(ret));
-    }
-
-    IOObjectRelease(o);
-    IOObjectRelease(it);
+    })
 }
 
 void _io_release_client(io_connect_t client)
@@ -112,23 +158,23 @@ void _io_release_client(io_connect_t client)
 
 void dict_get_bytes(void *dict, size_t dictlen, const char *key, void *buf, uint32_t *buflen)
 {
-    io_service_t service = _io_get_service("IOHDIXController"); // TODO
-    //io_service_t service = _io_get_service(NULL);
+    io_service_t service = _io_get_service();
     io_connect_t client = _io_spawn_client(service, dict, dictlen);
     TRY
     ({
         _io_get_bytes(service, key, buf, buflen);
     })
-    RETHROW
+    FINALLY
     ({
         _io_release_client(client);
     })
-    _io_release_client(client);
+    usleep(1000); // Async cleanup
 }
 
 void dict_parse(void *dict, size_t dictlen)
 {
-    io_service_t service = _io_get_service(NULL);
+    io_service_t service = _io_get_service();
     io_connect_t client = _io_spawn_client(service, dict, dictlen);
     _io_release_client(client);
+    usleep(1000); // Async cleanup
 }

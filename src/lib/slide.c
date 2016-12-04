@@ -6,11 +6,11 @@
 
 #include "common.h"             // DEBUG, PRINT_BUF, SIZE
 #include "io.h"                 // kOS*, dict_get_bytes
-#include "try.h"                // THROW, TRY, RETHROW
+#include "try.h"                // THROW, TRY, FINALLY
 
 #include "slide.h"
 
-size_t get_kernel_slide()
+size_t get_kernel_slide(void)
 {
     static size_t kslide = 0;
     if(kslide == 0)
@@ -37,22 +37,19 @@ size_t get_kernel_slide()
         {
             THROW("Failed to allocate buffer (%s)", strerror(errno));
         }
-
         TRY
         ({
             dict_get_bytes(dict, sizeof(dict), key, buf, &buflen);
+
+            PRINT_BUF("Kernel stack", buf, buflen);
+            // read value after OSNumber on the stack
+            kslide = buf[1] - 0xffffff8004536000; // TODO: hardcoded
+            DEBUG("Kernel slide: " SIZE, kslide);
         })
-        RETHROW
+        FINALLY
         ({
             free(buf);
         })
-
-        PRINT_BUF("Kernel stack", buf, buflen);
-        // read value after OSNumber on the stack
-        kslide = buf[1] - 0xffffff8004536000; // TODO: hardcoded
-        DEBUG("kslide: " SIZE, kslide);
-
-        free(buf);
     }
     return kslide;
 }

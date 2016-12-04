@@ -51,7 +51,7 @@ do \
 } while(0)
 
 // Braces are "misaligned" intentionally.
-// You need to combine either TRY-RETHROW or TRY-CATCH.
+// You need to combine either TRY-CATCH, TRY-RETHROW or TRY-FINALLY.
 #define TRY(code) \
 { \
     frame_t _frame = \
@@ -104,6 +104,17 @@ do \
             free(_frame.err.msg); \
             _frame.err.msg = NULL; \
         } \
+    } \
+}
+
+#define FINALLY(code) \
+        { \
+            code \
+        } \
+        _DO_THROW(_frame.err.file, _frame.err.line, _frame.err.func, _frame.err.msg); \
+    } \
+    { \
+        code \
     } \
 }
 

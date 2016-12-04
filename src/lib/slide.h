@@ -3,6 +3,6 @@
 
 #include <stddef.h>             // size_t
 
-size_t get_kernel_slide();
+size_t get_kernel_slide(void);
 
 #endif
