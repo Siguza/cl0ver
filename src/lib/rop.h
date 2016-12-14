@@ -3,10 +3,10 @@
 
 #include <mach/mach_types.h>    // task_t
 
-#include "common.h"             // file_t
+#include "common.h"             // addr_t
 
-void* get_stack_pivot(file_t *kernel);
+addr_t get_stack_pivot(void);
 
-void rop_get_kernel_task(file_t *kernel, void ***chain, task_t *task);
+void rop_get_kernel_task(addr_t **chain, task_t *task);
 
 #endif

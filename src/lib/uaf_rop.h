@@ -6,8 +6,8 @@
 
 void uaf_parse(const OSString *fake);
 
-void** uaf_rop_stack(void);
+addr_t* uaf_rop_stack(void);
 
-void uaf_rop(file_t *kernel);
+void uaf_rop(void);
 
 #endif

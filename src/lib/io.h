@@ -6,6 +6,8 @@
 
 #include <IOKit/IOKitLib.h>     // io_service_t
 
+#include "common.h"             // addr_t
+
 #define MIG_MSG_SIZE 0x1000
 
 enum
@@ -33,7 +35,7 @@ enum
     kOSStringNoCopy = 0x00000001,
 };
 
-typedef const void ** vtab_t;
+typedef const addr_t * vtab_t;
 
 typedef struct
 {
@@ -46,17 +48,15 @@ typedef struct
 
 /* Building blocks */
 
-io_service_t _io_get_service(void);
+io_connect_t _io_spawn_client(void *dict, size_t dictlen);
 
-io_connect_t _io_spawn_client(io_service_t service, void *dict, size_t dictlen);
-
-io_iterator_t _io_iterator(io_service_t service);
+io_iterator_t _io_iterator(void);
 
 io_object_t _io_next(io_iterator_t it);
 
 void _io_get(io_object_t o, const char *key, void *buf, uint32_t *buflen);
 
-void _io_get_bytes(io_service_t service, const char *key, void *buf, uint32_t *buflen);
+void _io_find(const char *key, void *buf, uint32_t *buflen);
 
 void _io_release_client(io_connect_t client);
 

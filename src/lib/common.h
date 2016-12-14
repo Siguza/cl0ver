@@ -103,18 +103,22 @@ do \
 
 #ifdef __LP64__
 #   define ADDR "0x%016llx"
+#   define ADDR_IN "%llx"
     typedef uint64_t addr_t;
 #   define MACH_MAGIC MH_MAGIC_64
     typedef struct mach_header_64 mach_hdr_t;
     typedef struct segment_command_64 mach_seg_t;
     typedef struct section_64 mach_sec_t;
+#   define KERNEL_BASE 0xffffff8004004000
 #else
 #   define ADDR "0x%08x"
+#   define ADDR_IN "%x"
     typedef uint32_t addr_t;
 #   define MACH_MAGIC MH_MAGIC
     typedef struct mach_header mach_hdr_t;
     typedef struct segment_command mach_seg_t;
     typedef struct section mach_sec_t;
+#   define KERNEL_BASE 0x80001000
 #endif
 
 #define SIZE "0x%016lx"
@@ -125,6 +129,9 @@ typedef struct
     size_t len;
 } file_t;
 
-#define MIN(x, y) ((x) > (y) ? (y) : (x))
+// sys/param.h defines MIN, avoid redifinition
+#ifndef MIN
+#   define MIN(x, y) ((x) > (y) ? (y) : (x))
+#endif
 
 #endif

