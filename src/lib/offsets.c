@@ -238,6 +238,12 @@ static addr_t reg_anchor(void)
                 case V_13G34:   return 0xffffff8004536000;
                 default:        THROW("Unsupported version");
             }
+        case M_N102AP:
+            switch(version)
+            {
+                case V_13C75:   return 0xffffff800453a000;
+                default:        THROW("Unsupported version");
+            }
 #else
         case M_N78AP:
         case M_N78aAP:
@@ -263,6 +269,12 @@ static addr_t reg_vtab(void)
             switch(version)
             {
                 case V_13G34:   return 0xffffff80044ef1f0;
+                default:        THROW("Unsupported version");
+            }
+        case M_N102AP:
+            switch(version)
+            {
+                case V_13C75:   return 0xffffff80044f3168;
                 default:        THROW("Unsupported version");
             }
         // iPhone??? 9.1 0xffffff80044f7168
