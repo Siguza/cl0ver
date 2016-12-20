@@ -1,4 +1,4 @@
-#include <string.h>             // strcmp
+#include <string.h>             // strcmp, strncmp
 #include <unistd.h>             // sync
 
 #include "common.h"             // ASSERT, WARN, log_init, log_release, sanity
@@ -29,11 +29,16 @@ int main(int argc, const char **argv)
 
     // 8,4 ffffff80044ef1f0 S __ZTV8OSString
 
+    log_init(NULL);
     int action = actPwn;
     size_t off;
     for(off = 1; off < argc; ++off)
     {
-        if(strcmp(argv[off], "panic") == 0)
+        if(strncmp(argv[off], "log=", 4))
+        {
+            log_init(&argv[off][4]);
+        }
+        else if(strcmp(argv[off], "panic") == 0)
         {
             action = actPanic;
         }
@@ -47,22 +52,9 @@ int main(int argc, const char **argv)
         }
         else
         {
-            break;
+            WARN("Unrecognized argument: %s", argv[off]);
+            return 1;
         }
-    }
-    if(argc > off)
-    {
-        log_init(argv[off]);
-        ++off;
-    }
-    else
-    {
-        log_init(NULL);
-    }
-    if(argc > off)
-    {
-        WARN("Too many arguments");
-        return 1;
     }
 
     sanity();
