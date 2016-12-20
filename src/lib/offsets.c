@@ -283,7 +283,7 @@ static addr_t reg_vtab(void)
         case M_N78aAP:
             switch(version)
             {
-                case V_13F69:   return 0x0; // TODO
+                case V_13F69:   return 0x803ece94;
                 default:        THROW("Unsupported version");
             }
 #endif
