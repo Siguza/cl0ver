@@ -60,7 +60,6 @@ io_connect_t _io_spawn_client(void *dict, size_t dictlen)
     DEBUG("Spawning user client / Parsing dictionary...");
     io_connect_t client = MACH_PORT_NULL;
     kern_return_t err;
-    usleep(100); // TODO: DEBUG
     kern_return_t ret = io_service_open_extended(_io_get_service(), mach_task_self(), 0, NDR_record, dict, dictlen, &err, &client);
     if(ret != KERN_SUCCESS || err != KERN_SUCCESS || !MACH_PORT_VALID(client))
     {

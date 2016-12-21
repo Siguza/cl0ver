@@ -142,8 +142,11 @@ typedef struct __attribute__ ((__packed__))
         // &task->itk_space
         addr_t off_task_itk_space;
 
-        // OSUnserializeXML stack size
-        addr_t off_OSUnserializeXML_stack;
+        // Size of OSUnserializeXML's stack, including saved registers
+        addr_t OSUnserializeXML_stack;
+
+        // Size of is_io_service_open_extended's stack, including saved registers
+        addr_t is_io_service_open_extended_stack;
 
     } unslid;
 
