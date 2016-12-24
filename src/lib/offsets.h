@@ -23,6 +23,9 @@ typedef struct __attribute__ ((__packed__))
 /* Gadgets - do something and load a new stack frame */
 /*****************************************************/
 
+        // The _load_xA_xB at the end of the names mean "from A to B".
+        // I.e. _load_x24_x19 means to load x24, x23, x22, x21, x20 and x19.
+
         // 0xffffff800402b69c      fd7b41a9  ldp x29, x30, [sp, 0x10]
         // 0xffffff800402b6a0      f44fc2a8  ldp x20, x19, [sp], 0x20
         // 0xffffff800402b6a4      c0035fd6  ret
