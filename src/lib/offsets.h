@@ -23,51 +23,51 @@ typedef struct __attribute__ ((__packed__))
 /* Gadgets - do something and load a new stack frame */
 /*****************************************************/
 
-        // 0xffffff800402b69c           fd7b41a9  ldp x29, x30, [sp, 0x10]
-        // 0xffffff800402b6a0           f44fc2a8  ldp x20, x19, [sp], 0x20
-        // 0xffffff800402b6a4           c0035fd6  ret
+        // 0xffffff800402b69c      fd7b41a9  ldp x29, x30, [sp, 0x10]
+        // 0xffffff800402b6a0      f44fc2a8  ldp x20, x19, [sp], 0x20
+        // 0xffffff800402b6a4      c0035fd6  ret
         addr_t gadget_load_x20_x19;
 
-        // 0xffffff8005aea01c           3d79c1a8  ldp x29, x30, [x9], 0x10
-        // 0xffffff8005aea020           ff430091  add sp, sp, 0x10
-        // 0xffffff8005aea024           c0035fd6  ret
+        // 0xffffff8005aea01c      3d79c1a8  ldp x29, x30, [x9], 0x10
+        // 0xffffff8005aea020      ff430091  add sp, sp, 0x10
+        // 0xffffff8005aea024      c0035fd6  ret
         addr_t gadget_ldp_x9_add_sp_sp_0x10;
 
-        // 0xffffff80040e3d1c           e01340f9  ldr x0, [sp, 0x20]
-        // 0xffffff80040e3d20           bf8300d1  sub sp, x29, 0x20
-        // 0xffffff80040e3d24           fd7b42a9  ldp x29, x30, [sp, 0x20]
-        // 0xffffff80040e3d28           f44f41a9  ldp x20, x19, [sp, 0x10]
-        // 0xffffff80040e3d2c           f657c3a8  ldp x22, x21, [sp], 0x30
-        // 0xffffff80040e3d30           c0035fd6  ret
+        // 0xffffff80040e3d1c      e01340f9  ldr x0, [sp, 0x20]
+        // 0xffffff80040e3d20      bf8300d1  sub sp, x29, 0x20
+        // 0xffffff80040e3d24      fd7b42a9  ldp x29, x30, [sp, 0x20]
+        // 0xffffff80040e3d28      f44f41a9  ldp x20, x19, [sp, 0x10]
+        // 0xffffff80040e3d2c      f657c3a8  ldp x22, x21, [sp], 0x30
+        // 0xffffff80040e3d30      c0035fd6  ret
         addr_t gadget_ldr_x0_sp_0x20_load_x22_x19;
 
-        // 0xffffff80040ddbcc           0000138b  add x0, x0, x19
-        // 0xffffff80040ddbd0           fd7b41a9  ldp x29, x30, [sp, 0x10]
-        // 0xffffff80040ddbd4           f44fc2a8  ldp x20, x19, [sp], 0x20
-        // 0xffffff80040ddbd8           c0035fd6  ret
+        // 0xffffff80040ddbcc      0000138b  add x0, x0, x19
+        // 0xffffff80040ddbd0      fd7b41a9  ldp x29, x30, [sp, 0x10]
+        // 0xffffff80040ddbd4      f44fc2a8  ldp x20, x19, [sp], 0x20
+        // 0xffffff80040ddbd8      c0035fd6  ret
         addr_t gadget_add_x0_x0_x19_load_x20_x19;
 
-        // 0xffffff8004e5eb60           80023fd6  blr x20
-        // 0xffffff8004e5eb64           bf8300d1  sub sp, x29, 0x20
-        // 0xffffff8004e5eb68           fd7b42a9  ldp x29, x30, [sp, 0x20]
-        // 0xffffff8004e5eb6c           f44f41a9  ldp x20, x19, [sp, 0x10]
-        // 0xffffff8004e5eb70           f657c3a8  ldp x22, x21, [sp], 0x30
-        // 0xffffff8004e5eb74           c0035fd6  ret
+        // 0xffffff8004e5eb60      80023fd6  blr x20
+        // 0xffffff8004e5eb64      bf8300d1  sub sp, x29, 0x20
+        // 0xffffff8004e5eb68      fd7b42a9  ldp x29, x30, [sp, 0x20]
+        // 0xffffff8004e5eb6c      f44f41a9  ldp x20, x19, [sp, 0x10]
+        // 0xffffff8004e5eb70      f657c3a8  ldp x22, x21, [sp], 0x30
+        // 0xffffff8004e5eb74      c0035fd6  ret
         addr_t gadget_blr_x20_load_x22_x19;
 
-        // 0xffffff800402b698           600200f9  str x0, [x19]
-        // 0xffffff800402b69c           fd7b41a9  ldp x29, x30, [sp, 0x10]
-        // 0xffffff800402b6a0           f44fc2a8  ldp x20, x19, [sp], 0x20
-        // 0xffffff800402b6a4           c0035fd6  ret
+        // 0xffffff800402b698      600200f9  str x0, [x19]
+        // 0xffffff800402b69c      fd7b41a9  ldp x29, x30, [sp, 0x10]
+        // 0xffffff800402b6a0      f44fc2a8  ldp x20, x19, [sp], 0x20
+        // 0xffffff800402b6a4      c0035fd6  ret
         addr_t gadget_str_x0_x19_load_x20_x19;
 
-        // 0xffffff80042fbfbc           a00240f9  ldr x0, [x21]
-        // 0xffffff80042fbfc0           fd7b43a9  ldp x29, x30, [sp, 0x30]
-        // 0xffffff80042fbfc4           f44f42a9  ldp x20, x19, [sp, 0x20]
-        // 0xffffff80042fbfc8           f65741a9  ldp x22, x21, [sp, 0x10]
-        // 0xffffff80042fbfcc           f85fc4a8  ldp x24, x23, [sp], 0x40
-        // 0xffffff80042fbfd0           c0035fd6  ret
         addr_t gadget_ldr_x0_x21_load_x24_19;
+        // 0xffffff80042fbfbc      a00240f9  ldr x0, [x21]
+        // 0xffffff80042fbfc0      fd7b43a9  ldp x29, x30, [sp, 0x30]
+        // 0xffffff80042fbfc4      f44f42a9  ldp x20, x19, [sp, 0x20]
+        // 0xffffff80042fbfc8      f65741a9  ldp x22, x21, [sp, 0x10]
+        // 0xffffff80042fbfcc      f85fc4a8  ldp x24, x23, [sp], 0x40
+        // 0xffffff80042fbfd0      c0035fd6  ret
 
         addr_t gadget_OSUnserializeXML_return;
 
@@ -75,21 +75,21 @@ typedef struct __attribute__ ((__packed__))
 /* Fragments - do something and branch */
 /***************************************/
 
-        // 0xffffff800402d978           e10314aa  mov x1, x20
-        // 0xffffff800402d97c           60023fd6  blr x19
+        // 0xffffff800402d978      e10314aa  mov x1, x20
+        // 0xffffff800402d97c      60023fd6  blr x19
         addr_t frag_mov_x1_x20_blr_x19;
 
 /*************************************************************/
 /* Functions - do something without changing the stack frame */
 /*************************************************************/
 
-        // 0xffffff8004119534           000040f9  ldr x0, [x0]
-        // 0xffffff8004119538           c0035fd6  ret
+        // 0xffffff8004119534      000040f9  ldr x0, [x0]
+        // 0xffffff8004119538      c0035fd6  ret
         addr_t func_ldr_x0_x0;
 
-        // 0xffffff8004052e0c           88d038d5  mrs x8, tpidr_el1
-        // 0xffffff8004052e10           008941f9  ldr x0, [x8, 0x310]
-        // 0xffffff8004052e14           c0035fd6  ret
+        // 0xffffff8004052e0c      88d038d5  mrs x8, tpidr_el1
+        // 0xffffff8004052e10      008941f9  ldr x0, [x8, 0x310]
+        // 0xffffff8004052e14      c0035fd6  ret
         addr_t func_current_task;
 
         // task_for_pid:
