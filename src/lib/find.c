@@ -19,7 +19,7 @@ void find_all_offsets(file_t *kernel, offsets_t *off)
     off->slid.gadget_add_x0_x0_x19_load_x20_x19     = 0xffffff80040ddbcc + slide;
     off->slid.gadget_blr_x20_load_x22_x19           = 0xffffff8004e5eb60 + slide;
     off->slid.gadget_str_x0_x19_load_x20_x19        = 0xffffff800402b698 + slide;
-    off->slid.gadget_ldr_x0_x21_load_x24_19         = 0xffffff80042fbfbc + slide;
+    off->slid.gadget_ldr_x0_x21_load_x24_x19        = 0xffffff80042fbfbc + slide;
     off->slid.gadget_OSUnserializeXML_return        = 0xffffff80043f08c4 + slide;
     off->slid.frag_mov_x1_x20_blr_x19               = 0xffffff800402d978 + slide;
     off->slid.func_ldr_x0_x0                        = 0xffffff8004119534 + slide;

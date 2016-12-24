@@ -479,7 +479,7 @@ void off_init(const char *dir)
             DEBUG("gadget_add_x0_x0_x19_load_x20_x19  = " ADDR, offsets.slid.gadget_add_x0_x0_x19_load_x20_x19);
             DEBUG("gadget_blr_x20_load_x22_x19        = " ADDR, offsets.slid.gadget_blr_x20_load_x22_x19);
             DEBUG("gadget_str_x0_x19_load_x20_x19     = " ADDR, offsets.slid.gadget_str_x0_x19_load_x20_x19);
-            DEBUG("gadget_ldr_x0_x21_load_x24_19      = " ADDR, offsets.slid.gadget_ldr_x0_x21_load_x24_19);
+            DEBUG("gadget_ldr_x0_x21_load_x24_x19     = " ADDR, offsets.slid.gadget_ldr_x0_x21_load_x24_x19);
             DEBUG("gadget_OSUnserializeXML_return     = " ADDR, offsets.slid.gadget_OSUnserializeXML_return);
             DEBUG("frag_mov_x1_x20_blr_x19            = " ADDR, offsets.slid.frag_mov_x1_x20_blr_x19);
             DEBUG("func_ldr_x0_x0                     = " ADDR, offsets.slid.func_ldr_x0_x0);

