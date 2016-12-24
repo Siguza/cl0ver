@@ -65,6 +65,11 @@ size_t get_kernel_slide(void)
 
         kslide = get_kernel_anchor() - off_anchor();
         DEBUG("Kernel slide: " SIZE, kslide);
+
+        if(kslide % 0x100000 != 0)
+        {
+            THROW("Kernel slide is not a multiple of 0x100000");
+        }
     }
     return kslide;
 }
