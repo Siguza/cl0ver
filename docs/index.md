@@ -514,12 +514,12 @@ Anyway, here are a few raw facts:
 See what I'm getting at? :P  
 Here's a visualization:
 
-![Normal heap layout](heap1.svg)
+![Normal heap layout](assets/img/heap1.svg)
 
 Now what happens when `retain()` is called on an OSString that was freed, but not yet reallocated?  
 In other words, what happens when we *combine* the above?
 
-![Reference to node in freelist](heap2.svg)
+![Reference to node in freelist](assets/img/heap2.svg)
 
 So what used to be our object's vtable pointer is now a pointer to the next node in the freelist. And what is treated as a pointer to `retain()` is the value just out of bounds of that next node.  
 Now, is there any way of predicting what value that area of memory is gonna hold?
@@ -537,7 +537,7 @@ By making lots of strategical allocations and deallocations (hooray for [Heap Fe
 
 Visualized again:
 
-![Heap Feng Shui](heap3.svg)
+![Heap Feng Shui](assets/img/heap3.svg)
 
 (The dictionaries to achieve this are straightforward and make no use of any bugs so far.)
 
