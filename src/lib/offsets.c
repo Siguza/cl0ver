@@ -121,10 +121,9 @@ static uint32_t get_model(void)
     size_t s = sizeof(b);
     // sysctl("hw.model")
     int cmd[2] = { CTL_HW, HW_MODEL };
-    int ret = sysctl(cmd, sizeof(cmd) / sizeof(*cmd), b, &s, NULL, 0);
-    if(ret != 0)
+    if(sysctl(cmd, sizeof(cmd) / sizeof(*cmd), b, &s, NULL, 0) != 0)
     {
-        THROW("sysctl(\"hw.model\") failed: %s", strerror(ret));
+        THROW("sysctl(\"hw.model\") failed: %s", strerror(errno));
     }
     DEBUG("Model: %s", b);
 
@@ -190,10 +189,9 @@ static uint32_t get_os_version(void)
     size_t s = sizeof(b);
     // sysctl("kern.osversion")
     int cmd[2] = { CTL_KERN, KERN_OSVERSION };
-    int ret = sysctl(cmd, sizeof(cmd) / sizeof(*cmd), b, &s, NULL, 0);
-    if(ret != 0)
+    if(sysctl(cmd, sizeof(cmd) / sizeof(*cmd), b, &s, NULL, 0) != 0)
     {
-        THROW("sysctl(\"kern.osversion\") failed: %s", strerror(ret));
+        THROW("sysctl(\"kern.osversion\") failed: %s", strerror(errno));
     }
     DEBUG("OS build: %s", b);
 
