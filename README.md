@@ -2,9 +2,25 @@
 
 A tfp0 patch for iOS 9, based on the Pegasus/Trident vulnerabilities.
 
-### Build
+### Building
+
+On macOS with XCode:
 
     make
+    
+On a different OS with an iOS SDK and `ldid` installed:
+
+*   Download a [XNU source tarball](https://opensource.apple.com/tarballs/xnu/) and unzip it.
+*   Download an [IOKitUser source tarball](https://opensource.apple.com/tarballs/IOKitUser/) and unzip it.
+*   Export the following environment variables:
+
+        LIBKERN=path/to/xnu/libkern
+        OSFMK=path/to/xnu/osfmk
+        IOKIT=path/to/IOKitUser
+        IGCC=ios-compiler-command
+        LIBTOOL=ios-libtool-command
+        SIGN=ldid
+        SIGN_FLAGS=-S
     
 ### Usage
 
