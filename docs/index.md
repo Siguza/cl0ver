@@ -7,7 +7,7 @@ Make Userland Great Again!
 ## Introduction
 
 On October 4th, [@jndok](https://twitter.com/jndok) did an amazing writeup on [how to exploit the Pegasus vulnerabilities on OS X](https://jndok.github.io/2016/10/04/pegasus-writeup/).  
-Shortly after that I started working on a tool to exploit them on iOS, in order to add the tfp0 kernel patch that has been missing from Pangu's 9.0 and 9.2-9.3.3 jailbreaks. On December 4th, my tool had advanced enough for me to release [a proof of concept video](https://twitter.com/s1guza/status/805463734739173376), it was still far from complete. I intended to bring it to full compatibility with as many devices and OS versions as possible, but shortly after my PoC, [@qwertyoruiopz](https://twitter.com/qwertyoruiopz) released a [web-based reimplementation of the 9.2-9.3.3 jailbreak](https://jbme.qwertyoruiop.com/), which *does* have a tfp0 patch. Apparently I've also missed some ongoing efforts by [Simone Ferrini](https://github.com/sferrini)/[Benjamin Randazzo](https://github.com/benjamin-42)/[@angelXwind](https://twitter.com/angelXwind) to [create a 32-bit jailbreak](https://github.com/angelXwind/Trident) based on these vulnerabilities. And on December 15th [Ian Beer killed it (once again) with his partial 10.1.1 jailbreak](https://bugs.chromium.org/p/project-zero/issues/detail?id=965#c2), which qwertyoruiopz is now [turning into a full one](https://yalu.qwertyoruiop.com/), probably diverting everyone's attention away from iOS 9 for good.  
+Shortly after that I started working on a tool to exploit them on iOS, in order to add the tfp0 kernel patch that has been missing from Pangu's 9.0 and 9.2-9.3.3 jailbreaks. On December 4th, my tool had advanced enough for me to release [a proof of concept video](https://twitter.com/s1guza/status/805463734739173376), it was still far from complete. I intended to bring it to full compatibility with as many devices and OS versions as possible, but shortly after my PoC, [@qwertyoruiopz](https://twitter.com/qwertyoruiopz) released a [web-based reimplementation of the 9.2-9.3.3 jailbreak](https://jbme.qwertyoruiop.com/), which *does* have a tfp0 patch. Apparently I've also missed some ongoing efforts by [Simone Ferrini](https://github.com/sferrini)/[Benjamin Randazzo](https://github.com/benjamin-42)/[@angelXwind](https://twitter.com/angelXwind) to [create a 32-bit jailbreak](https://github.com/benjamin-42/Trident) based on these vulnerabilities. And on December 15th [Ian Beer killed it (once again) with his partial 10.1.1 jailbreak](https://bugs.chromium.org/p/project-zero/issues/detail?id=965#c2), which qwertyoruiopz is now [turning into a full one](https://yalu.qwertyoruiop.com/), probably diverting everyone's attention away from iOS 9 for good.  
 Of course huge props to all of them, but that kind of abolishes the need for an iOS 9 tfp0 patch. In light of that, I'm going to release my tool in an unfinished state and instead focus on this writeup.
 
 So, here's my demonstration of how to use the Pegasus vulnerabilities to dump, exploit and patch an iOS kernel in a way that can be done from within the sandbox and with only publicly available knowledge (i.e. no kernel dumps required).  
@@ -88,8 +88,8 @@ For that we create a local `./include` directory that we later pass to the compi
 We also use some IOKit MIG functions, which are perfectly available on 32-bit (`iokitmig.h`) but private (non-exported) on 64-bit.  
 We _could_ write a 32-bit binary able to exploit both a 32-bit and 64-bit kernel, but having the same data types and sizes as the kernel is just so much more convenient. And after all, generating the MIG routines yourself and statically linking against them turns out to be simple enough. I found very little info on this on the web though, so here's the process in detail:
 
-There's a `mig` utility to create C source files from .defs, in the case of the IOKit MIG functions, `xnu-src/osfmk/device/device.defs`.  
-We run it as `xcrun -sdk iphoneos mig` to get the iOS environment and add `-arch arm64` to set the correct target architecture (I'm not sure whether the generated C code differs at all between architectures, but at some point it *might*, so I'm trying to do this the correct way). Examining the file, we can also see that if the `IOKIT` macro is not defined, we get hardly anything, so we're gonna add a `-DIOKIT` to our flags. Lastly, we need some other .defs files to be included but we can't specify `xnu-src/osfmk` as an include directory because it contains some files that will `#error` when the architecture is neither i386 nor x86_64, so we symlink the following files (from `xnu-src/osfmk`) to our local `./include` directory:
+There's a `mig` utility to create C source files from .defs, in the case of the IOKit MIG functions, `xnu/osfmk/device/device.defs`.  
+We run it as `xcrun -sdk iphoneos mig` to get the iOS environment and add `-arch arm64` to set the correct target architecture (I'm not sure whether the generated C code differs at all between architectures, but at some point it *might*, so I'm trying to do this the correct way). Examining the file, we can also see that if the `IOKIT` macro is not defined, we get hardly anything, so we're gonna add a `-DIOKIT` to our flags. Lastly, we need some other .defs files to be included but we can't specify `xnu/osfmk` as an include directory because it contains some files that will `#error` when the architecture is neither i386 nor x86_64, so we symlink the following files (from `xnu/osfmk`) to our local `./include` directory:
 
     mach/clock_types.defs
     mach/mach_types.defs
@@ -102,7 +102,7 @@ Finally we can run:
     -arch arm64 \
     -DIOKIT \
     -I./include \
-    xnu-src/osfmk/device/device.defs
+    xnu/osfmk/device/device.defs
 
 This will generate three files:
 
@@ -112,7 +112,7 @@ This will generate three files:
 
 Including `iokit.h` and `iokitUser.c` in our program will provide us with the full set of IOKit MIG functions. `iokitServer.c` isn't needed as such, but it can still serve as a good reference to understand how exactly the kernel passes our MIG calls to its `is_io_*` functions.
 
-(In my actual implementation I used `/usr/include` instead of `xnu-src/osfmk` because I can't assert people to have the XNU source available in a predefined location, but that might stop working when XNU changes enough.)
+(In my actual implementation I used `/usr/include` instead of `xnu/osfmk` because I can't assert people to have the XNU source available in a predefined location, but that might stop working when XNU changes enough.)
 
 Now we're fully equipped to play with IOKit on both armv7 and arm64! :D
 
@@ -838,7 +838,7 @@ Let's first sort out those we surely cannot use as a stack pivot loading address
 `x0` or `x28` would be perfect, as they point to a memory area whose contents are entirely controllable. However, I was unable to find a gadget that loads from `x0` or `x28`.  
 
 I had my fair share of trouble finding a usable stack pivot. I looked at some docs discussing stack pivots on x86 and 32-bit ARM, and I have to say it looks to me like on those architectures it's a lot easier than on arm64!  
-The only thing that I found _at all_ mentioning stack pivots on arm64 was [@qwertyoruiopz](https://twitter.com/qwertyoruiopz), saying it's [amazingly easy to find them](https://twitter.com/qwertyoruiopz/status/644142701840068608). Luca, should you happen to read this, care to explain? :)
+The only thing that I found _at all_ mentioning stack pivots on arm64 was [@qwertyoruiopz](https://twitter.com/qwertyoruiopz), saying it's [amazingly easy to find them](https://twitter.com/qwertyoruiopz/status/644142701840068608). Luca, should you happen to read this, care to elaborate? :)
 
 Now, I did eventually find a usable gadget:
 
