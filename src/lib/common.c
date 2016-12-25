@@ -2,6 +2,8 @@
 #include <stdbool.h>            // bool, true
 #include <stdio.h>              // FILE, stderr, fopen, fclose
 #include <string.h>             // strerror
+#include <sys/sysctl.h>         // sysctlbyname
+#include <mach/machine.h>       // CPU_TYPE_*
 #include <unistd.h>             // getppid
 
 #include "io.h"                 // OSString
@@ -42,14 +44,37 @@ void log_release(void)
 
 void sanity(void)
 {
-    // In case we panic...
-    sync();
-
 #ifdef __LP64__
     ASSERT(sizeof(OSString) == 8 * sizeof(uint32_t));
 #else
     ASSERT(sizeof(OSString) == 5 * sizeof(uint32_t));
 #endif
 
-    // TODO: sysctl("hw.cputype")
+    // Make sure that architecture of the binary matches architecture of the OS
+    cpu_type_t type;
+    size_t size = sizeof(type);
+    if(sysctlbyname("hw.cputype", &type, &size, NULL, 0) != 0)
+    {
+        THROW("sysctl(\"hw.cputype\") failed: %s", strerror(errno));
+    }
+    switch(type)
+    {
+#ifdef __LP64__
+        case CPU_TYPE_ARM64: break;
+        case CPU_TYPE_ARM:
+            THROW("We're running an arm64 binary on an armv7 OS? What kind of black magic is this?!");
+            break;
+#else
+        case CPU_TYPE_ARM: break;
+        case CPU_TYPE_ARM64:
+            THROW("Program architecture does not match OS architecture. Please use the arm64 slice.");
+            break;
+#endif
+        default:
+            THROW("We're neither on an armv7 nor arm64 OS. Something's wrong here.");
+            break;
+    }
+
+    // In case we panic...
+    sync();
 }
