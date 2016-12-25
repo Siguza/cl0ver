@@ -20,7 +20,7 @@ The following are assumed to be well known/understood, and are explained in deta
 - how the kernel slide info leak works
 - how the UaF can be used to gain PC control
 
-Note: This project included a lot of "firsts" for me. I've never before: done ROP, played with IOKit, MIG or the kernel heap, etc, etc. As such it might me that this writeup contains some misconceptions or stuff that could be done a lot easier, faster or safer.  
+Note: This project included a lot of "firsts" for me. I've never before: done ROP, played with IOKit, MIG or the kernel heap, etc, etc. As such it might be that this writeup contains some misconceptions or stuff that could be done a lot easier, faster or safer.  
 If you spot anything like that, **please let me know** (via [GitHub issues](https://github.com/Siguza/cl0ver/issues), [Twitter](https://twitter.com/s1guza), Email (`*@*.net` where `* = siguza`), or whatever).  
 Also please don't hesitate to contact me if there's something you don't understand, of if you'd like more details on something.
 
