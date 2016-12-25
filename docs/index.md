@@ -1129,11 +1129,7 @@ The patch we're gonna apply is as follows:
 
     realhost.special[4] = kernel_task->itk_self;
 
-This isn't technically true to the name "tfp0", but it allows any binary running as root to retrieve the kernel task port via
-
-    host_get_special_port(mach_host_self(), HOST_LOCAL_NODE, 4, &kernel_task);
-
-With access to the kernel task port, applying that patch is a simple matter of using `vm_read` and `vm_write`:
+With access to the kernel task port, applying that patch is a simple matter of using `vm_read` and `vm_write` (omitted error handling):
 
     addr_t *special = (addr_t*)offsets.slid.data_realhost_special;
     vm_address_t kernel_task_addr,
@@ -1150,6 +1146,10 @@ With access to the kernel task port, applying that patch is a simple matter of u
 
     // Write to realhost.special[4]
     vm_write(kernel_task, (vm_address_t)(&special[4]), (vm_address_t)&kernel_self_port_addr, sizeof(kernel_self_port_addr));
+
+This isn't technically true to the name "tfp0", but it allows any binary running as root to retrieve the kernel task port via
+
+    host_get_special_port(mach_host_self(), HOST_LOCAL_NODE, 4, &kernel_task);
 
 *The full implementation of this can be found in the `patch_host_special_port_4` function in [`exploit.c`](https://github.com/Siguza/cl0ver/blob/master/src/lib/exploit.c)*
 
