@@ -1181,6 +1181,6 @@ First and foremost I would like to thank [@jndok](https://twitter.com/jndok) (as
 Also thanks to:
 
 - The guys at [Citizenlab](https://citizenlab.org/2016/08/million-dollar-dissident-iphone-zero-day-nso-group-uae/) and [Lookout](https://www.lookout.com/trident-pegasus-enterprise-discovery) for the initial analysis of the Pegasus spyware.
-- [Jonathan Levin (@Morpheus______)](https://twitter.com/Morpheus______) for his awesome tools, especially [joker](http://www.newosxbook.com/tools/joker.html) - saved me weeks of work at the very least.
+- <a href="https://twitter.com/Morpheus______">Jonathan Levin (@Morpheus______)</a> for his awesome tools, especially [joker](http://www.newosxbook.com/tools/joker.html) - saved me weeks of work at the very least.
 - Everyone who contributed to [radare2](https://github.com/radare/radare2) for that incredibly powerful and advanced reverse engineering toolkit.
 - [Rohit Mothe (@rohitwas)](https://twitter.com/rohitwas) for so tirelessly discussing and rethinking so many steps of this project over and over with me.
