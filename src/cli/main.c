@@ -34,7 +34,7 @@ int main(int argc, const char **argv)
     size_t off;
     for(off = 1; off < argc; ++off)
     {
-        if(strncmp(argv[off], "log=", 4))
+        if(strncmp(argv[off], "log=", 4) == 0)
         {
             log_init(&argv[off][4]);
         }
