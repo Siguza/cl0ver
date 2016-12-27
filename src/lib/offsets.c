@@ -248,6 +248,7 @@ static addr_t reg_anchor(void)
             switch(version)
             {
                 case V_13F69:   return 0x800a744b;
+                case V_13B143:  return 0x800a7b93;
                 default:        THROW("Unsupported version");
             }
 #endif
@@ -282,6 +283,7 @@ static addr_t reg_vtab(void)
             switch(version)
             {
                 case V_13F69:   return 0x803ece94;
+                case V_13B143:  return 0x803eee50;
                 default:        THROW("Unsupported version");
             }
 #endif
