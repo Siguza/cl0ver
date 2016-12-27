@@ -230,6 +230,7 @@ static addr_t reg_anchor(void)
     switch(model)
     {
 #ifdef __LP64__
+        case M_N71AP:
         case M_N69AP:
             switch(version)
             {
@@ -264,6 +265,7 @@ static addr_t reg_vtab(void)
     switch(model)
     {
 #ifdef __LP64__
+        case M_N71AP:
         case M_N69AP:
             switch(version)
             {
