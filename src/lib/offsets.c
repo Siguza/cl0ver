@@ -420,24 +420,67 @@ void off_init(const char *dir)
                 })
             }
 
+            file_t kernel;
             if(!initialized)
             {
-                DEBUG("No offsets loaded so far, dumping the kernel...");
-                file_t kernel;
-                uaf_dump_kernel(&kernel);
+                DEBUG("No offsets loaded so far, checking for kernel cache file...");
                 TRY
                 ({
-                    // Save dumped kernel to file
-                    FILE *f_kernel = fopen(kernel_file, "wb");
-                    if(f_kernel == NULL)
+                    FILE *f_krn = fopen(kernel_file, "rb");
+                    if(f_krn != NULL)
                     {
-                        WARN("Failed to create kernel file (%s)", strerror(errno));
+                        TRY
+                        ({
+                            /* Go to the end of the file. */
+                            if (fseek(f_krn, 0L, SEEK_END) == 0)
+                            {
+                                /* Get the size of the file. */
+                                long bufsize = ftell(f_krn);
+                                if (bufsize == -1)
+                                {
+                                    WARN("Invalid kernel cache file length");
+                                }
+
+                                /* Allocate our buffer to that size. */
+                                kernel.buf = malloc(sizeof(char) * (bufsize + 1));
+
+                                /* Go back to the start of the file. */
+                                if (fseek(f_krn, 0L, SEEK_SET) != 0)
+                                {
+                                    WARN("Could not return to start of kernel cache file");
+                                }
+
+                                size_t newLen = fread(kernel.buf, sizeof(char), bufsize, f_krn);
+                                if (newLen == 0)
+                                {
+                                    WARN("Could not read kernel cache file");
+                                }
+
+                                kernel.len = newLen;
+                            }
+                        })
+                        FINALLY
+                        ({
+                            fclose(f_krn);
+                        })
                     }
-                    else
+
+                    if ((kernel.buf == NULL) || (kernel.len == 0))
                     {
-                        fwrite(kernel.buf, 1, kernel.len, f_kernel);
-                        fclose(f_kernel);
-                        DEBUG("Wrote dumped kernel to %s", kernel_file);
+                        DEBUG("No kernel loaded so far, dumping the kernel...");
+                        uaf_dump_kernel(&kernel);
+                        // Save dumped kernel to file
+                        FILE *f_kernel = fopen(kernel_file, "wb");
+                        if(f_kernel == NULL)
+                        {
+                            WARN("Failed to create kernel file (%s)", strerror(errno));
+                        }
+                        else
+                        {
+                            fwrite(kernel.buf, 1, kernel.len, f_kernel);
+                            fclose(f_kernel);
+                            DEBUG("Wrote dumped kernel to %s", kernel_file);
+                        }
                     }
 
                     // Find offsets
