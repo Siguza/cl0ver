@@ -3,10 +3,12 @@
 
 #include "find.h"
 
-void find_all_offsets(file_t *kernel, offsets_t *off)
+// delta is base address of current kernel minus dumped kernel (so it can be negative)
+void find_all_offsets(file_t *kernel, int64_t delta, offsets_t *off)
 {
     DEBUG("Looking for offsets in kernel...");
 
+#ifdef __LP64__
     size_t slide = get_kernel_slide();
 
     // TODO: Offset finding is entirely unimplemented.
@@ -34,4 +36,7 @@ void find_all_offsets(file_t *kernel, offsets_t *off)
     off->unslid.is_io_service_open_extended_stack   = 0x120;
 
     DEBUG("Got all offsets");
+#else
+    THROW("32-bit is not supported yet");
+#endif
 }

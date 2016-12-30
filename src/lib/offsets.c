@@ -1,12 +1,12 @@
 #include <errno.h>              // errno
 #include <stdbool.h>            // bool, true, false
 #include <stdint.h>             // uint32_t
-#include <stdio.h>              // FILE, asprintf, fopen, fclose, fscanf
+#include <stdio.h>              // FILE, asprintf, fopen, fclose, fscanf, ftello, fseeko
 #include <stdlib.h>             // free
 #include <string.h>             // memcpy, strncmp, strerror
 #include <sys/sysctl.h>         // CTL_*, KERN_OSVERSION, HW_MODEL, sysctl
 
-#include "common.h"             // DEBUG, addr_t
+#include "common.h"             // DEBUG, MIN, addr_t, mach_*
 #include "find.h"               // find_all_offsets
 #include "slide.h"              // get_kernel_slide
 #include "try.h"                // THROW, TRY, FINALLY
@@ -364,7 +364,7 @@ void off_init(const char *dir)
                     addr_t version;
                     if(fread(&version, sizeof(version), 1, f_off) != 1)
                     {
-                        DEBUG("Failed to read cache file version.");
+                        DEBUG("Failed to read cache file version (%s)", strerror(errno));
                     }
                     else if(version != CACHE_VERSION)
                     {
@@ -372,7 +372,7 @@ void off_init(const char *dir)
                     }
                     else if(fread(&offsets, sizeof(offsets), 1, f_off) != 1)
                     {
-                        DEBUG("Failed to read offsets from cache file.");
+                        DEBUG("Failed to read offsets from cache file (%s)", strerror(errno));
                     }
                     else
                     {
@@ -395,56 +395,132 @@ void off_init(const char *dir)
 
             if(!initialized)
             {
-                DEBUG("No offsets loaded so far, dumping the kernel...");
+                size_t kslide = get_kernel_slide();
+                DEBUG("No offsets loaded so far, checking for dumped kernel...");
                 file_t kernel;
-                uaf_dump_kernel(&kernel);
+                kernel.buf = NULL;
+                kernel.len = 0;
                 TRY
                 ({
-                    // Save dumped kernel to file
-                    FILE *f_kernel = fopen(kernel_file, "wb");
+                    FILE *f_kernel = fopen(kernel_file, "rb");
                     if(f_kernel == NULL)
                     {
-                        WARN("Failed to create kernel file (%s)", strerror(errno));
+                        DEBUG("Failed to open file (%s)", strerror(errno));
                     }
                     else
                     {
-                        fwrite(kernel.buf, 1, kernel.len, f_kernel);
+                        if(fseeko(f_kernel, 0, SEEK_END) != 0)
+                        {
+                            DEBUG("Failed to seek to end (%s)", strerror(errno));
+                        }
+                        else
+                        {
+                            kernel.len = ftello(f_kernel);
+                            if(kernel.len == -1)
+                            {
+                                DEBUG("Failed to get stream position (%s)", strerror(errno));
+                            }
+                            else if(fseeko(f_kernel, 0, SEEK_SET) != 0)
+                            {
+                                DEBUG("Failed to seek to beginning (%s)", strerror(errno));
+                            }
+                            else
+                            {
+                                kernel.buf = malloc(kernel.len);
+                                if(kernel.buf == NULL)
+                                {
+                                    DEBUG("Failed to allocate file buffer (%s)", strerror(errno));
+                                }
+                                else if(fread(kernel.buf, kernel.len, 1, f_kernel) != 1)
+                                {
+                                    DEBUG("Failed to load dumped kernel (%s)", strerror(errno));
+                                    free(kernel.buf);
+                                    kernel.buf = NULL;
+                                }
+                            }
+                        }
                         fclose(f_kernel);
-                        DEBUG("Wrote dumped kernel to %s", kernel_file);
+                    }
+
+                    // Difference of base address of loaded kernel and running kernel
+                    int64_t delta;
+
+                    if(kernel.buf != NULL)
+                    {
+                        // Get base address of the loaded kernel
+                        addr_t base = 0;
+                        mach_hdr_t *hdr = (mach_hdr_t*)kernel.buf;
+                        for(mach_cmd_t *cmd = (mach_cmd_t*)&hdr[1], *end = (mach_cmd_t*)((char*)cmd + hdr->sizeofcmds); cmd < end; cmd = (mach_cmd_t*)((char*)cmd + cmd->cmdsize))
+                        {
+                            switch(cmd->cmd)
+                            {
+                                case LC_SEGMENT:
+                                case LC_SEGMENT_64:
+                                    {
+                                        base = MIN(base, ((mach_seg_t*)cmd)->vmaddr);
+                                    }
+                                default:
+                                    break;
+                            }
+                        }
+                        delta = kslide - (base - KERNEL_BASE);
+                    }
+                    else
+                    {
+                        DEBUG("That didn't work, dumping the kernel now...");
+                        uaf_dump_kernel(&kernel);
+
+                        // Save dumped kernel to file
+                        f_kernel = fopen(kernel_file, "wb");
+                        if(f_kernel != NULL)
+                        {
+                            fwrite(kernel.buf, 1, kernel.len, f_kernel);
+                            fclose(f_kernel);
+                            DEBUG("Wrote dumped kernel to %s", kernel_file);
+                        }
+                        else
+                        {
+                            WARN("Failed to create kernel file (%s)", strerror(errno));
+                        }
+
+                        // loaded kernel == running kernel
+                        delta = 0;
                     }
 
                     // Find offsets
-                    find_all_offsets(&kernel, &offsets);
-
-                    // Create an unslid copy
-                    size_t kslide = get_kernel_slide();
-                    offsets_t copy;
-                    memcpy(&copy, &offsets, sizeof(copy));
-                    addr_t *slid = (addr_t*)&copy.slid;
-                    for(size_t i = 0; i < sizeof(copy.slid) / sizeof(addr_t); ++i)
-                    {
-                        slid[i] -= kslide;
-                    }
-
-                    // Write unslid offsets to file
-                    FILE *f_off = fopen(offsets_file, "wb");
-                    if(f_off == NULL)
-                    {
-                        WARN("Failed to create offsets cache file (%s)", strerror(errno));
-                    }
-                    else
-                    {
-                        addr_t version = CACHE_VERSION;
-                        fwrite(&version, sizeof(version), 1, f_off);
-                        fwrite(&copy, sizeof(copy), 1, f_off);
-                        fclose(f_off);
-                        DEBUG("Wrote offsets to %s", offsets_file);
-                    }
+                    find_all_offsets(&kernel, delta, &offsets);
                 })
                 FINALLY
                 ({
-                    free(kernel.buf);
+                    if(kernel.buf != NULL)
+                    {
+                        free(kernel.buf);
+                    }
                 })
+
+                // Create an unslid copy
+                offsets_t copy;
+                memcpy(&copy, &offsets, sizeof(copy));
+                addr_t *slid = (addr_t*)&copy.slid;
+                for(size_t i = 0; i < sizeof(copy.slid) / sizeof(addr_t); ++i)
+                {
+                    slid[i] -= kslide;
+                }
+
+                // Write unslid offsets to file
+                FILE *f_off = fopen(offsets_file, "wb");
+                if(f_off == NULL)
+                {
+                    WARN("Failed to create offsets cache file (%s)", strerror(errno));
+                }
+                else
+                {
+                    addr_t version = CACHE_VERSION;
+                    fwrite(&version, sizeof(version), 1, f_off);
+                    fwrite(&copy, sizeof(copy), 1, f_off);
+                    fclose(f_off);
+                    DEBUG("Wrote offsets to %s", offsets_file);
+                }
             }
 
             DEBUG("Offsets:");
