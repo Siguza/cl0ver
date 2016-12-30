@@ -3,9 +3,9 @@ INCDIR = include
 MIGDIR = mig
 SRCDIR = src
 OBJDIR = build
-LIBKERN ?= /usr/include
-OSFMK ?= /usr/include
-IOKIT ?= /System/Library/Frameworks/IOKit.framework/Headers
+LIBKERN ?= /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
+OSFMK ?= /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
+IOKIT ?= /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/IOKit.framework/Headers
 IGCC ?= xcrun -sdk iphoneos gcc
 IGCC_FLAGS = -arch armv7 -arch arm64 -Wall -O3 -std=c11 -miphoneos-version-min=9.0 -fmodules -I./$(SRCDIR)/lib -I./$(INCDIR) -I./$(MIGDIR) $(CFLAGS)
 LD_FLAGS = -Wl,-dead_strip -L. -Wl,-pagezero_size,0x4000 -Wl,-image_base,0x100000000 $(LDFLAGS)
