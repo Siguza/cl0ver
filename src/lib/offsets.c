@@ -448,7 +448,7 @@ void off_init(const char *dir)
                     if(kernel.buf != NULL)
                     {
                         // Get base address of the loaded kernel
-                        addr_t base = 0;
+                        addr_t base = ~0;
                         mach_hdr_t *hdr = (mach_hdr_t*)kernel.buf;
                         for(mach_cmd_t *cmd = (mach_cmd_t*)&hdr[1], *end = (mach_cmd_t*)((char*)cmd + hdr->sizeofcmds); cmd < end; cmd = (mach_cmd_t*)((char*)cmd + cmd->cmdsize))
                         {
