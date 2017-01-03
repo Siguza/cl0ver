@@ -1,4 +1,5 @@
 #include <stdint.h>             // uint32_t
+#include <unistd.h>             // usleep
 
 #include <mach/kern_return.h>   // kern_return_t, KERN_SUCCESS
 #include <mach/mach_error.h>    // mach_error_string

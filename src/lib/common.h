@@ -3,8 +3,11 @@
 
 #include <math.h>               // floor, log10
 #include <stdbool.h>            // bool
+#include <stdint.h>             // uint64_t
 #include <stdio.h>              // FILE, fprintf
 #include <stdlib.h>             // exit
+
+#include <mach/mach_time.h>     // mach_absolute_time
 
 #include <mach-o/loader.h>      // MH_MAGIC[_64], mach_header[_64], segment_command[_64], section[_64], load_command
 
@@ -99,6 +102,17 @@ do \
     { \
         DEBUG( #buf "[%*i]: 0x%0*llx", digits, i, (int)(2 * sizeof(*(buf))), (uint64_t)(buf)[i]); \
     } \
+} while(0)
+
+uint64_t nanoseconds_to_mach_time(uint64_t ns);
+
+#define TIMER_START(timer) \
+uint64_t timer = mach_absolute_time();
+
+#define TIMER_SLEEP_UNTIL(timer, ns) \
+do \
+{ \
+    mach_wait_until(timer + nanoseconds_to_mach_time(ns)); \
 } while(0)
 
 #ifdef __LP64__

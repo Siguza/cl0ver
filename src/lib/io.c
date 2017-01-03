@@ -1,5 +1,4 @@
 #include <stdint.h>             // uint32_t, uint64_t
-#include <unistd.h>             // usleep
 
 #include <mach/kern_return.h>   // kern_return_t, KERN_SUCCESS
 #include <mach/mach_error.h>    // mach_error_string
@@ -16,7 +15,7 @@
 #   include "iokitUser.c"       // io_service_open_extended
 #endif
 
-#include "common.h"             // DEBUG
+#include "common.h"             // DEBUG, TIMER_*
 #include "try.h"                // THROW, TRY, FINALLY
 
 #include "io.h"
@@ -141,6 +140,7 @@ void _io_release_client(io_connect_t client)
 
 void dict_get_bytes(void *dict, size_t dictlen, const char *key, void *buf, uint32_t *buflen)
 {
+    TIMER_START(timer);
     io_connect_t client = _io_spawn_client(dict, dictlen);
     TRY
     ({
@@ -150,11 +150,14 @@ void dict_get_bytes(void *dict, size_t dictlen, const char *key, void *buf, uint
     ({
         _io_release_client(client);
     })
-    usleep(1000); // Async cleanup
+    // Async cleanup
+    TIMER_SLEEP_UNTIL(timer, 50e6); // 50ms
 }
 
 void dict_parse(void *dict, size_t dictlen)
 {
+    TIMER_START(timer);
     _io_release_client(_io_spawn_client(dict, dictlen));
-    usleep(1000); // Async cleanup
+    // Async cleanup
+    TIMER_SLEEP_UNTIL(timer, 50e6); // 50ms
 }

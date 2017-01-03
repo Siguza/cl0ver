@@ -6,6 +6,8 @@
 #include <mach/machine.h>       // CPU_TYPE_*
 #include <unistd.h>             // getppid
 
+#include <mach/mach_time.h>     // mach_absolute_time, mach_timebase_info
+
 #include "io.h"                 // OSString
 #include "try.h"                // THROW
 
@@ -77,4 +79,14 @@ void sanity(void)
 
     // In case we panic...
     sync();
+}
+
+uint64_t nanoseconds_to_mach_time(uint64_t ns)
+{
+    static struct mach_timebase_info timebase = { .numer = 0, .denom = 0 };
+    if(timebase.denom == 0)
+    {
+        mach_timebase_info(&timebase);
+    }
+    return ns * timebase.denom / timebase.numer;
 }

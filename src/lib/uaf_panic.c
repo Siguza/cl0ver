@@ -1,6 +1,6 @@
 #include <stdint.h>             // uint32_t
 #include <sys/sysctl.h>         // CTL_*, KERN_OSVERSION, HW_MODEL, sysctl
-#include <unistd.h>             // sleep, usleep, sync
+#include <unistd.h>             // sleep, sync
 
 #include <IOKit/IOKitLib.h>     // IO*, io_*
 
