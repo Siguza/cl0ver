@@ -113,7 +113,7 @@ void off_cfg(const char *dir)
                     // Can't use initializer list because TRY macro
                     addr_t a;
                     addr_t v;
-                    if(fscanf(f_cfg, ADDR_IN "\n" ADDR_IN, &a, &v) == 0)
+                    if(fscanf(f_cfg, ADDR_IN "\n" ADDR_IN, &a, &v) == 2)
                     {
                         DEBUG("Anchor: " ADDR ", Vtab: " ADDR, a, v);
                         anchor = a;
