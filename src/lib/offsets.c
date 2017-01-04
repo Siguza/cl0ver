@@ -115,9 +115,9 @@ void off_cfg(const char *dir)
                     addr_t v;
                     if(fscanf(f_cfg, ADDR_IN "\n" ADDR_IN, &a, &v) == 2)
                     {
-                        DEBUG("Anchor: " ADDR ", Vtab: " ADDR, a, v);
+                        DEBUG("Anchor: " ADDR ", Vtab (unslid): " ADDR, a, v);
                         anchor = a;
-                        vtab   = v;
+                        vtab   = v + get_kernel_slide();
                     }
                     else
                     {
