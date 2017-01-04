@@ -84,7 +84,7 @@ addr_t* uaf_rop_stack(void)
 void uaf_rop(void)
 {
     DEBUG("Executing ROP chain...");
-    usleep(100); // In case we panic...
+    usleep(10000); // In case we panic...
 
     addr_t vtab[5] =
     {
