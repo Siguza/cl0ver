@@ -52,7 +52,7 @@ do \
 
 // Braces are "misaligned" intentionally.
 // You need to combine either TRY-CATCH, TRY-RETHROW or TRY-FINALLY.
-#define TRY(code) \
+#define TRY(...) \
 { \
     frame_t _frame = \
     { \
@@ -68,27 +68,29 @@ do \
     _last_frame = &_frame; \
     if(setjmp(_frame.jmp) == 0) \
     { \
-        code \
+        { \
+            __VA_ARGS__ \
+        } \
         _last_frame = _frame.prev; \
     } \
     else \
     { \
         _last_frame = _frame.prev;
 
-#define RETHROW(code) \
+#define RETHROW(...) \
         { \
-            code \
+            __VA_ARGS__ \
         } \
         _DO_THROW(_frame.err.file, _frame.err.line, _frame.err.func, _frame.err.msg); \
     } \
 }
 
-#define CATCH(e, code) \
+#define CATCH(e, ...) \
         { \
             frame_err_t *e = &_frame.err; \
             TRY \
             ({ \
-                code \
+                __VA_ARGS__ \
             }) \
             RETHROW \
             ({ \
@@ -107,14 +109,14 @@ do \
     } \
 }
 
-#define FINALLY(code) \
+#define FINALLY(...) \
         { \
-            code \
+            __VA_ARGS__ \
         } \
         _DO_THROW(_frame.err.file, _frame.err.line, _frame.err.func, _frame.err.msg); \
     } \
     { \
-        code \
+        __VA_ARGS__ \
     } \
 }
 

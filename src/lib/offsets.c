@@ -111,8 +111,7 @@ void off_cfg(const char *dir)
                 ({
                     DEBUG("Yes, attempting to read anchor and vtab from config file...");
                     // Can't use initializer list because TRY macro
-                    addr_t a;
-                    addr_t v;
+                    addr_t a, v;
                     if(fscanf(f_cfg, ADDR_IN "\n" ADDR_IN, &a, &v) == 2)
                     {
                         DEBUG("Anchor: " ADDR ", Vtab (unslid): " ADDR, a, v);
