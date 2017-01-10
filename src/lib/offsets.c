@@ -14,7 +14,7 @@
 
 #include "offsets.h"
 
-#define CACHE_VERSION 1
+#define CACHE_VERSION 2
 offsets_t offsets;
 static addr_t anchor = 0,
               vtab   = 0;
