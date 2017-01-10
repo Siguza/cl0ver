@@ -463,6 +463,45 @@ Without further ado, a quick recap/reference on some key points:
 
     *The implementation of this (just CLI, no GUI) can be found outside the main source, in [`cl0ver/scan/scan.c`](https://github.com/Siguza/cl0ver/blob/master/scan/scan.c).*
 
+-   > ***Update 10. Jan 2017:***
+    >
+    > The original path to yield a UaF was to use an `OSString` as dictionary key, which would free it even before the next object is parsed. It turns out that this method doesn't work on all iOS versions from 9.0 through 9.3.4.  
+    > The ability to use strings as keys (as opposed to symbols) was introduced somewhere between xnu-2782.40.9 and xnu-3248.20.55... so somewhere between between iOS 8.0 beta 2 and 9.2 beta 3. What I know for sure is that 9.2 and above are vulnerable, and 9.0.2 and below are not. Trying to use a string as key in those versions will make the call to `io_service_open_extended` fail with an "invalid argument" error.
+    >
+    > **But fear not!** There are other paths yielding a UaF!  
+    > One of them is using the same key multiple times, which leads to the value previously assigned to that key getting freed. (This was disabled somewhere between xnu-3248.20.55 and xnu-3248.60.10 (after 9.2 beta 1), but has been enabled again in xnu-3789.1.32).
+    >
+    > Basically all you have to do is, for versions not vulnerable to this:
+    >
+    >     kOSSerializeString,     // string that'll get freed
+    >     // ...
+    >     kOSSerializeData,       // data that replaces the string
+    >     // ...
+    >
+    >     kOSSerializeSymbol,
+    >     // ...
+    >     kOSSerializeObject | 1, // reference to overwritten string
+    >
+    > You do this:
+    >
+    >     kOSSerializeSymbol,     // some name
+    >     // ...
+    >     kOSSerializeString,     // string that'll get freed
+    >     // ...
+    >
+    >     kOSSerializeObject | 1, // same name as above
+    >     kOSSerializeBoolean,    // just any value
+    >
+    >     kOSSerializeObject | 1, // same name again
+    >     kOSSerializeData,       // data that replaces the string
+    >     // ...
+    >
+    >     kOSSerializeSymbol,
+    >     // ...
+    >     kOSSerializeObject | 2, // reference to overwritten string
+    >
+    > So, game on! :D
+
 ## Part One: Obtaining the OSString vtable address
 
 All of `OSData`, `OSString` and `OSSymbol` contain both a buffer pointer and length field, which we could abuse together with `IORegistryEntryGetProperty` to retrieve arbitrary kernel memory. So in theory, we could overwrite our freed `OSString` to mimic any of these. However:
@@ -940,7 +979,11 @@ But the above is sort of a high-level view. If you want details, go look at the 
 
 Whether we're manually looking for addresses or want to write code that does it for us (after all, hardcoding is ugly), we need a plan on how to identify them.
 
-*Note: I planned for an offset finder to be implemented in [`find.c`](https://github.com/Siguza/cl0ver/blob/master/src/lib/find.c), but I haven't gotten round to it. I'm just lining out how the addresses could be found.*
+~~~*Note: I planned for an offset finder to be implemented in [`find.c`](https://github.com/Siguza/cl0ver/blob/master/src/lib/find.c), but I haven't gotten round to it. I'm just lining out how the addresses could be found.*~~~
+
+> ***Update 10. Jan 2017:***
+>
+> For arm64, this has been fully implemented in [`find.c`](https://github.com/Siguza/cl0ver/blob/master/src/lib/find.c) now.
 
 Now, there's two categories:
 
