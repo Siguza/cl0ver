@@ -7,7 +7,7 @@
 #include "common.h"             // DEBUG
 #include "device.h"             // V_*, get_os_version
 #include "io.h"                 // kOS*, dict_parse, _io_*
-#include "slide.h"              // get_kernel_anchor, get_kernel_slide
+#include "slide.h"              // get_kernel_anchor
 #include "try.h"                // THROW, TRY, RETHROW
 
 #include "uaf_panic.h"
