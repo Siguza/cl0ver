@@ -27,6 +27,7 @@ static addr_t reg_anchor(void)
     {
 #ifdef __LP64__
         case M_N61AP  | V_13A452:
+        case M_J97AP  | V_13A404:
             return 0xffffff800454a000;
         case M_N69AP  | V_13G34:
         case M_N71AP  | V_13G34:
@@ -52,6 +53,7 @@ static addr_t reg_vtab(void)
     {
 #ifdef __LP64__
         case M_N61AP  | V_13A452:
+        case M_J97AP  | V_13A404:
             return 0xffffff8004503168;
         case M_N69AP  | V_13G34:
         case M_N71AP  | V_13G34:
