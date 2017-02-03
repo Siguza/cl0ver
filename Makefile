@@ -1,4 +1,5 @@
 TARGET = cl0ver
+PKG = $(TARGET).tar.xz
 INCDIR = include
 MIGDIR = mig
 SRCDIR = src
@@ -17,11 +18,13 @@ MIG_FLAGS ?= -arch arm64 -DIOKIT -I../$(INCDIR)
 LIBTOOL ?= xcrun -sdk iphoneos libtool
 LIBTOOL_FLAGS ?= -static
 
-.PHONY: all lib clean fullclean
+.PHONY: all lib pkg clean fullclean
 
 all: $(TARGET)
 
 lib: lib$(TARGET).a
+
+pkg: $(PKG)
 
 $(TARGET): lib$(TARGET).a $(INCDIR) $(MIGDIR)
 	$(IGCC) -o $@ $(IGCC_FLAGS) $(LD_FLAGS) $(LD_LIBS) $(SRCDIR)/cli/*.c
@@ -52,8 +55,11 @@ $(MIGDIR): | $(INCDIR)
 $(OBJDIR):
 	mkdir $(OBJDIR)
 
+$(PKG): $(TARGET)
+	tar -cJf $(PKG) $(TARGET)
+
 clean:
-	rm -rf $(TARGET) lib$(TARGET).a $(INCDIR) $(OBJDIR)
+	rm -rf $(TARGET) lib$(TARGET).a $(PKG) $(INCDIR) $(OBJDIR)
 
 fullclean: clean
 	rm -rf $(MIGDIR)
