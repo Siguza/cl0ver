@@ -24,6 +24,8 @@ On a different OS with an iOS SDK and `ldid` installed:
 
 ### Usage
 
+Command line arguments:
+
     ./cl0ver panic [log=file]
         Panic the device, loading to PC:
         on 32-bit: the base address of __DATA.__const
@@ -40,19 +42,27 @@ On a different OS with an iOS SDK and `ldid` installed:
 
     If log=file is give, output is written to "file" instead of stderr/syslog.
 
-### Device/OS Support
+But before you can use it, cl0ver needs information about your kernel. There are 3 files it might or might not need:
 
-Only a small set of device/OS combinations is currently supported.  
-If you would like me to add support for yours, please run `./cl0ver panic` and [open a ticket](https://github.com/Siguza/cl0ver/issues/new) containing cl0ver's output as well as the panic log.
+* `/etc/cl0ver/config.txt`  
+  Start by running `./cl0ver slide`. If that tells you the kernel slide, this file isn't required. If it tells you "Unhandled error: Unsupported device", do the following:  
+  Run `./cl0ver panic` (preferably over SSH) and save the output you get. This should crash your device and generate a panic log (you can find panic logs in Settings > Privacy > Diagnostics & Usage > Diagnostics & Usage > panic-XXX.ips). Somewhere near the top you should see "panic(cpu 0 caller 0xffffff80...)". The message after that should read "Kernel instruction fetch abort: pc=0xffffff80...". **It is important that the first 8 characters of that value are `0xffffff80`. Any value starting with `0xffffff81` is useless.**
+  If you didn't get a panic log, or if the panic log does not fulfill the above criteria, repeat the process (also discard the saved output of cl0ver and save the new one).  
+  Once you get a panic log, [open a ticket](https://github.com/Siguza/cl0ver/issues/new) and post both your saved output and your panic log (they might be too long to include in your ticket - in that case, post them to pastebin or something and leave a link). I will then attempt to extract the values you have to put in your config.
+* `/etc/cl0ver/offsets.dat`  
+  Check the [offsets folder](https://github.com/Siguza/cl0ver/tree/master/offsets) to see if a file for your device and OS version is available. If there is one, download it and put it at the mentioned path. If there isn't one available, simply skip this file.
+* `/etc/cl0ver/kernel.bin`  
+  If you already got an `offsets.dat` file, this file isn't required.  
+  if you have no offsets file, first check if [decryption keys](https://www.theiphonewiki.com/wiki/Firmware_Keys/9.x) are available for your device/OS version. If they are, decrypt and extract your kernel from the IPSW and put it at `/etc/cl0ver/kernel.bin`.  
+  If none of the above is the case, run `./cl0ver dump`, but be warned: due to the nature of the Pegasus vulnerabilities, dumping is inherently unstable, and there's a good chance your device will just crash. If your device (eventually) doesn't crash however, you should be left with a `kernel.bin` file. Simply move it to `/etc/cl0ver/kernel.bin`.
 
-### Config/Cache
+Once you've verified for each of the above files that you either have it or don't need it, you can go ahead and run `./cl0ver` without any other arguments. It should take less than a second to complete, and end with the line:
 
-If you know stack anchor and OSString vtable for an unsupported device/OS and don't want to wait for me to add support for it, you can do the following:  
-Create a file at `/etc/cl0ver/config.txt` containing in hexadecimal: on line 1 the stack anchor, on line 2 the OSString vtable address.
+    [*] Successfully installed patch
 
-If you want a dumped kernel to be saved, and calculated offsets to be cached, make sure the directory `/etc/cl0ver` exists and is writeable by the current user.
+If you see this line, the chances that it went _wrong_ are practically zero, but if you like, you can still verify with any tool that uses the kernel task. `kmap` from [kern-utils](https://github.com/Siguza/ios-kern-utils) is a good candidate IMO (just make sure to run as root).
 
-If you have a dumped/decrypted kernel and want to skip kernel dumping, place it at `/etc/kernel.bin`.
+Now, if it all worked out for you and there was no `offsets.dat` available for your device/OS version, **please [open a ticket](https://github.com/Siguza/cl0ver/issues/new) and attach it there** - you'll be doing others a great favour. :)
 
 ### GUI/Sandbox
 
@@ -65,7 +75,7 @@ And you'll want to call them like:
 
 # Writeup
 
-**[ [Here](https://siguza.github.io/cl0ver/) ]**
+**[ [tfp0 powered by Pegasus](https://siguza.github.io/cl0ver/) ]**
 
 # License
 
