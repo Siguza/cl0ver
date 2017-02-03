@@ -26,6 +26,7 @@ static addr_t reg_anchor(void)
     switch(get_model() | get_os_version())
     {
 #ifdef __LP64__
+        case M_N56AP  | V_13A452:
         case M_N61AP  | V_13A452:
         case M_J97AP  | V_13A404:
             return 0xffffff800454a000;
@@ -57,6 +58,7 @@ static addr_t reg_vtab(void)
     switch(get_model() | get_os_version())
     {
 #ifdef __LP64__
+        case M_N56AP  | V_13A452:
         case M_N61AP  | V_13A452:
         case M_J97AP  | V_13A404:
             return 0xffffff8004503168;
