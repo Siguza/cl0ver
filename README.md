@@ -4,6 +4,8 @@ A tfp0 patch for iOS 9, based on the Pegasus/Trident vulnerabilities.
 
 ### Building
 
+(Precompiled binaries can be obtained from [here](https://github.com/Siguza/cl0ver/releases).)
+
 On macOS with XCode and XCode command line tools installed:
 
     make
