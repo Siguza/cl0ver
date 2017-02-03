@@ -41,6 +41,8 @@ static addr_t reg_anchor(void)
         case M_N78AP  | V_13F69:
         case M_N78aAP | V_13F69:
             return 0x800a744b;
+        case M_N94AP  | V_13A452:
+            return 0x800a78b3;
 #endif
         default: THROW("Unsupported device/OS combination");
     }
@@ -67,6 +69,8 @@ static addr_t reg_vtab(void)
         case M_N78AP  | V_13F69:
         case M_N78aAP | V_13F69:
             return 0x803ece94;
+        case M_N94AP  | V_13A452:
+            return 0x803ede50;
 #endif
         default: THROW("Unsupported device/OS combination");
     }
