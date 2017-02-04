@@ -33,6 +33,8 @@ static addr_t reg_anchor(void)
         case M_N69AP  | V_13G34:
         case M_N71AP  | V_13G34:
             return 0xffffff8004536000;
+        case M_N66AP  | V_13A452:
+        case M_N66mAP | V_13A452:
         case M_N71AP  | V_13A452:
         case M_N71mAP | V_13A452:
             return 0xffffff800453e000;
@@ -65,6 +67,8 @@ static addr_t reg_vtab(void)
         case M_N69AP  | V_13G34:
         case M_N71AP  | V_13G34:
             return 0xffffff80044ef1f0;
+        case M_N66AP  | V_13A452:
+        case M_N66mAP | V_13A452:
         case M_N71AP  | V_13A452:
         case M_N71mAP | V_13A452:
             return 0xffffff80044f7168;
