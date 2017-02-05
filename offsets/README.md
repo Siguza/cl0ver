@@ -10,6 +10,6 @@ Available offsets:
 | Device                                    | iOS   | File                                                                                                      |
 | :---------------------------------------: | :---: | :-------------------------------------------------------------------------------------------------------: |
 | iPhone 6<br>iPhone 6+                     | 9.0.2 | [N61AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N61AP_13A452/offsets.dat)   |
-| iPhone 6s (N71AP)<br>iPhone 6s (N66AP)    | 9.0.2 | [N71AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71AP_13A452/offsets.dat)   |
+| iPhone 6s (N71AP)<br>iPhone 6s+ (N66AP)   | 9.0.2 | [N71AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71AP_13A452/offsets.dat)   |
 | iPhone 6s (N71mAP)<br>iPhone 6s+ (N66mAP) | 9.0.2 | [N71mAP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71mAP_13A452/offsets.dat) |
 | iPhone SE                                 | 9.3.3 | [N69AP_13G34](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N69AP_13G34/offsets.dat)     |
