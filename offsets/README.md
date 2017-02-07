@@ -7,10 +7,41 @@ It can be that these files work for devices and iOS versions that aren't listed 
 
 Available offsets:
 
-| Device                                    | iOS   | File                                                                                                      |
-| :---------------------------------------: | :---: | :-------------------------------------------------------------------------------------------------------: |
-| iPhone 5s (both models)                   | 9.0.2 | [N51AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N51AP_13A452/offsets.dat)   |
-| iPhone 6<br>iPhone 6+                     | 9.0.2 | [N61AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N61AP_13A452/offsets.dat)   |
-| iPhone 6s (N71AP)<br>iPhone 6s+ (N66AP)   | 9.0.2 | [N71AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71AP_13A452/offsets.dat)   |
-| iPhone 6s (N71mAP)<br>iPhone 6s+ (N66mAP) | 9.0.2 | [N71mAP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71mAP_13A452/offsets.dat) |
-| iPhone SE                                 | 9.3.3 | [N69AP_13G34](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N69AP_13G34/offsets.dat)     |
+<!-- wen eta rowspan support for markdown tables? -->
+
+<table align="center">
+    <tr>
+        <th>Device</th>
+        <th>iOS</th>
+        <th>File</th>
+    </tr>
+    <tr>
+        <td>iPhone 5s (both models)</td>
+        <td>9.0.2</td>
+        <td>[N51AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N51AP_13A452/offsets.dat)</td>
+    </tr>
+    <tr>
+        <td>iPhone 6<br>iPhone 6+</td>
+        <td>9.0.2</td>
+        <td>[N61AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N61AP_13A452/offsets.dat)</td>
+    </tr>
+    <tr>
+        <td>iPhone 6s (N71AP)<br>iPhone 6s+ (N66AP)</td>
+        <td>9.0.2</td>
+        <td>[N71AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71AP_13A452/offsets.dat)</td>
+    </tr>
+    <tr>
+        <td rowspan="2">iPhone 6s (N71mAP)<br>iPhone 6s+ (N66mAP)</td>
+        <td>9.0.1</td>
+        <td>[N71mAP_13A405](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71mAP_13A405/offsets.dat)</td>
+    </tr>
+    <tr>
+        <td>9.0.2</td>
+        <td>[N71mAP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71mAP_13A452/offsets.dat)</td>
+    </tr>
+    <tr>
+        <td>iPhone SE (N69AP)</td>
+        <td>9.3.3</td>
+        <td>[N69AP_13G34](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N69AP_13G34/offsets.dat)</td>
+    </tr>
+</table>
