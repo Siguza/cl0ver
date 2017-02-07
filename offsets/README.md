@@ -18,30 +18,30 @@ Available offsets:
     <tr>
         <td>iPhone 5s (both models)</td>
         <td>9.0.2</td>
-        <td>[N51AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N51AP_13A452/offsets.dat)</td>
+        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N51AP_13A452/offsets.dat">N51AP_13A452</a></td>
     </tr>
     <tr>
         <td>iPhone 6<br>iPhone 6+</td>
         <td>9.0.2</td>
-        <td>[N61AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N61AP_13A452/offsets.dat)</td>
+        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N61AP_13A452/offsets.dat">N61AP_13A452</a></td>
     </tr>
     <tr>
         <td>iPhone 6s (N71AP)<br>iPhone 6s+ (N66AP)</td>
         <td>9.0.2</td>
-        <td>[N71AP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71AP_13A452/offsets.dat)</td>
+        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71AP_13A452/offsets.dat">N71AP_13A452</a></td>
     </tr>
     <tr>
         <td rowspan="2">iPhone 6s (N71mAP)<br>iPhone 6s+ (N66mAP)</td>
         <td>9.0.1</td>
-        <td>[N71mAP_13A405](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71mAP_13A405/offsets.dat)</td>
+        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71mAP_13A405/offsets.dat">N71mAP_13A405</a></td>
     </tr>
     <tr>
         <td>9.0.2</td>
-        <td>[N71mAP_13A452](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71mAP_13A452/offsets.dat)</td>
+        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71mAP_13A452/offsets.dat">N71mAP_13A452</a></td>
     </tr>
     <tr>
         <td>iPhone SE (N69AP)</td>
         <td>9.3.3</td>
-        <td>[N69AP_13G34](https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N69AP_13G34/offsets.dat)</td>
+        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N69AP_13G34/offsets.dat">N69AP_13G34</a></td>
     </tr>
 </table>
