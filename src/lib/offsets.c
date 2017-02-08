@@ -30,9 +30,6 @@ static addr_t reg_anchor(void)
         case M_N61AP  | V_13A452:
         case M_J97AP  | V_13A404:
             return 0xffffff800454a000;
-        case M_N69AP  | V_13G34:
-        case M_N71AP  | V_13G34:
-            return 0xffffff8004536000;
         case M_N51AP  | V_13A452:
         case M_N53AP  | V_13A452:
         case M_N66AP  | V_13A452:
@@ -41,6 +38,11 @@ static addr_t reg_anchor(void)
         case M_N71mAP | V_13A405:
         case M_N71mAP | V_13A452:
             return 0xffffff800453e000;
+        case M_N61AP  | V_13G34:
+            return 0xffffff8004542000;
+        case M_N69AP  | V_13G34:
+        case M_N71AP  | V_13G34:
+            return 0xffffff8004536000;
         case M_N102AP | V_13C75:
             return 0xffffff800453a000;
 #else
@@ -67,9 +69,6 @@ static addr_t reg_vtab(void)
         case M_N61AP  | V_13A452:
         case M_J97AP  | V_13A404:
             return 0xffffff8004503168;
-        case M_N69AP  | V_13G34:
-        case M_N71AP  | V_13G34:
-            return 0xffffff80044ef1f0;
         case M_N51AP  | V_13A452:
         case M_N53AP  | V_13A452:
         case M_N66AP  | V_13A452:
@@ -78,6 +77,11 @@ static addr_t reg_vtab(void)
         case M_N71mAP | V_13A405:
         case M_N71mAP | V_13A452:
             return 0xffffff80044f7168;
+        case M_N61AP  | V_13G34:
+            return 0xffffff80044fb1f0;
+        case M_N69AP  | V_13G34:
+        case M_N71AP  | V_13G34:
+            return 0xffffff80044ef1f0;
         case M_N102AP | V_13C75:
             return 0xffffff80044f3168;
 #else
