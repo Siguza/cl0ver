@@ -16,7 +16,7 @@ Available offsets:
         <th>File</th>
     </tr>
     <tr>
-        <td>iPhone 5s (both models)</td>
+        <td>iPhone 5s (N51AP)<br>iPhone 5s (N53AP)</td>
         <td>9.0.2</td>
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N51AP_13A452/offsets.dat">N51AP_13A452</a></td>
     </tr>
