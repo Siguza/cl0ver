@@ -5,6 +5,8 @@ They are to be placed on your device, at `/etc/cl0ver/offsets.dat`.
 
 It can be that these files work for devices and iOS versions that aren't listed here, but they could also very well crash your device. If you discover that one of these files works for an unlisted combo, please notify me.
 
+Also, please don't be confused by the file names, they are simply chosen by the first combo they're known to work with. So even though a file might be called `N71mAP_13A405` (which would indicate iPhone 6s and iOS 9.0.1), it has proven to also work for the iPhone 6s+, as well as iOS 9.0, and is therefore listed accordingly.
+
 Available offsets:
 
 <!-- wen eta rowspan support for markdown tables? -->
@@ -21,7 +23,7 @@ Available offsets:
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N51AP_13A452/offsets.dat">N51AP_13A452</a></td>
     </tr>
     <tr>
-        <td rowspan="2">iPhone 6<br>iPhone 6+</td>
+        <td rowspan="2">iPhone 6 (N61AP)<br>iPhone 6+ (N56AP)</td>
         <td>9.0.2</td>
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N61AP_13A452/offsets.dat">N61AP_13A452</a></td>
     </tr>
