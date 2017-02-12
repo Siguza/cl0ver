@@ -1,5 +1,6 @@
 TARGET = cl0ver
-PKG = $(TARGET).tar.xz
+XZ = $(TARGET).tar.xz
+ZIP = $(TARGET).zip
 INCDIR = include
 MIGDIR = mig
 SRCDIR = src
@@ -24,7 +25,7 @@ all: $(TARGET)
 
 lib: lib$(TARGET).a
 
-pkg: $(PKG)
+pkg: $(XZ) $(ZIP)
 
 $(TARGET): lib$(TARGET).a $(INCDIR) $(MIGDIR)
 	$(IGCC) -o $@ $(IGCC_FLAGS) $(LD_FLAGS) $(LD_LIBS) $(SRCDIR)/cli/*.c
@@ -55,11 +56,14 @@ $(MIGDIR): | $(INCDIR)
 $(OBJDIR):
 	mkdir $(OBJDIR)
 
-$(PKG): $(TARGET)
-	tar -cJf $(PKG) $(TARGET)
+$(XZ): $(TARGET)
+	tar -cJf $@ $(TARGET)
+
+$(ZIP): $(TARGET)
+	zip -9 $@ $(TARGET)
 
 clean:
-	rm -rf $(TARGET) lib$(TARGET).a $(PKG) $(INCDIR) $(OBJDIR)
+	rm -rf $(TARGET) lib$(TARGET).a $(XZ) $(ZIP) $(INCDIR) $(OBJDIR)
 
 fullclean: clean
 	rm -rf $(MIGDIR)
