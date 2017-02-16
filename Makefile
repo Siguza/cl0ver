@@ -19,13 +19,13 @@ MIG_FLAGS ?= -arch arm64 -DIOKIT -I../$(INCDIR)
 LIBTOOL ?= xcrun -sdk iphoneos libtool
 LIBTOOL_FLAGS ?= -static
 
-.PHONY: all lib pkg clean fullclean
+.PHONY: all lib dist clean fullclean
 
 all: $(TARGET)
 
 lib: lib$(TARGET).a
 
-pkg: $(XZ) $(ZIP)
+dist: $(XZ) $(ZIP)
 
 $(TARGET): lib$(TARGET).a $(INCDIR) $(MIGDIR)
 	$(IGCC) -o $@ $(IGCC_FLAGS) $(LD_FLAGS) $(LD_LIBS) $(SRCDIR)/cli/*.c
