@@ -56,6 +56,11 @@ Available offsets:
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/J72AP_13A452/offsets.dat">J72AP_13A452</a></td>
     </tr>
     <tr>
+        <td>iPad Air 2 (J81AP)</td>
+        <td>9.0.2</td>
+        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/J81AP_13A452/offsets.dat">J81AP_13A452</a></td>
+    </tr>
+    <tr>
         <td>iPad mini 2 (J85AP)</td>
         <td>9.0.2</td>
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/J85AP_13A452/offsets.dat">J85AP_13A452</a></td>
