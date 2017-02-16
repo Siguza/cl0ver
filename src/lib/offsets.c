@@ -6,7 +6,7 @@
 #include <string.h>             // memcpy, strerror
 
 #include "common.h"             // DEBUG, MIN, addr_t, mach_*
-#include "device.h"             // get_model, get_os_version
+#include "device.h"             // M_*, V_*, get_model, get_os_version
 #include "find.h"               // find_all_offsets
 #include "slide.h"              // get_kernel_slide
 #include "try.h"                // THROW, TRY, FINALLY
@@ -18,7 +18,13 @@
 offsets_t offsets;
 static addr_t anchor = 0,
               vtab   = 0;
-static bool initialized = false;
+static bool initialized = false,
+            new_payload = false;
+
+bool use_new_payload(void)
+{
+    return new_payload;
+}
 
 static addr_t reg_anchor(void)
 {
@@ -164,6 +170,16 @@ void off_cfg(const char *dir)
                         DEBUG("Anchor: " ADDR ", Vtab (unslid): " ADDR, a, v);
                         anchor = a;
                         vtab   = v + get_kernel_slide();
+
+                        uint8_t override = 0;
+                        if(fscanf(f_cfg, "\noverride=%hhu", &override) == 1 && override == 90 || override == 92)
+                        {
+                            new_payload = override == 92;
+                        }
+                        else
+                        {
+                            new_payload = get_os_version() >= V_13C75; // 9.2
+                        }
                     }
                     else
                     {

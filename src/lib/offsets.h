@@ -1,9 +1,13 @@
 #ifndef OFFSETS_H
 #define OFFSETS_H
 
+#include <stdbool.h>            // bool
+
 #include "common.h"             // addr_t
 
 /* Hardcoded */
+
+bool use_new_payload(void);
 
 addr_t off_anchor(void);
 

