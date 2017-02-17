@@ -169,7 +169,11 @@ void off_cfg(const char *dir)
                     {
                         DEBUG("Anchor: " ADDR ", Vtab (unslid): " ADDR, a, v);
                         anchor = a;
-                        vtab   = v + get_kernel_slide();
+                        vtab   = v;
+                        if(anchor != 0 && vtab != 0) // uninitialised
+                        {
+                            vtab += get_kernel_slide();
+                        }
 
                         uint8_t override = 0;
                         if(fscanf(f_cfg, "\noverride=%hhu", &override) == 1 && override == 90 || override == 92)
