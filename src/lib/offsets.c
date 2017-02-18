@@ -37,6 +37,7 @@ static addr_t reg_anchor(void)
         case M_N56AP  | V_13A452:
         case M_N61AP  | V_13A452:
             return 0xffffff800454a000;
+        case M_J71AP  | V_13A452:
         case M_J72AP  | V_13A452:
         case M_J85AP  | V_13A452:
         case M_N51AP  | V_13A452:
@@ -84,6 +85,7 @@ static addr_t reg_vtab(void)
         case M_N56AP  | V_13A452:
         case M_N61AP  | V_13A452:
             return 0xffffff8004503168;
+        case M_J71AP  | V_13A452:
         case M_J72AP  | V_13A452:
         case M_J85AP  | V_13A452:
         case M_N51AP  | V_13A452:

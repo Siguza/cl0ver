@@ -51,7 +51,7 @@ Available offsets:
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N69AP_13G34/offsets.dat">N69AP_13G34</a></td>
     </tr>
     <tr>
-        <td>iPad Air (J72AP)</td>
+        <td>iPad Air (J71AP)<br>iPad Air (J72AP)</td>
         <td>9.0.2</td>
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/J72AP_13A452/offsets.dat">J72AP_13A452</a></td>
     </tr>
