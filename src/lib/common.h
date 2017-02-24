@@ -123,7 +123,6 @@ do \
     typedef struct mach_header_64 mach_hdr_t;
     typedef struct segment_command_64 mach_seg_t;
     typedef struct section_64 mach_sec_t;
-#   define KERNEL_BASE 0xffffff8004004000
 #else
 #   define ADDR "0x%08x"
 #   define ADDR_IN "%x"
@@ -132,7 +131,6 @@ do \
     typedef struct mach_header mach_hdr_t;
     typedef struct segment_command mach_seg_t;
     typedef struct section mach_sec_t;
-#   define KERNEL_BASE 0x80001000
 #endif
 
 #define SIZE "0x%016lx"

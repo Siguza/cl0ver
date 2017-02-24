@@ -5,6 +5,8 @@
 
 #include "common.h"             // addr_t
 
+extern addr_t kernel_base;
+
 /* Hardcoded */
 
 bool use_new_payload(void);
