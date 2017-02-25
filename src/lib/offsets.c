@@ -16,6 +16,7 @@
 
 #define CACHE_VERSION 2
 #ifdef __LP64__
+    bool dump_full_kernel = false;
     addr_t kernel_base = 0xffffff8004004000;
 #else
     addr_t kernel_base = 0x80001000;
@@ -184,6 +185,7 @@ void off_cfg(const char *dir)
                             vtab += get_kernel_slide();
                         }
 
+                        bool got_payload = false;
                         addr_t base = 0;
                         if(fscanf(f_cfg, "\n" ADDR, &base) == 1)
                         {
@@ -193,14 +195,27 @@ void off_cfg(const char *dir)
                             }
 
                             uint8_t override = 0;
-                            if(fscanf(f_cfg, "\noverride=%hhu", &override) == 1 && override == 90 || override == 92)
+                            if(fscanf(f_cfg, "\noverride=%hhu", &override) == 1)
                             {
-                                new_payload = override == 92;
-                                goto got_payload;
+                                if(override == 90 || override == 92)
+                                {
+                                    new_payload = override == 92;
+                                    got_payload = true;
+                                }
+#ifdef __LP64__
+                                int n = 0;
+                                fscanf(f_cfg, "\nfull_dump%n", &n);
+                                if(n > 0)
+                                {
+                                    dump_full_kernel = true;
+                                }
+#endif
                             }
                         }
-                        new_payload = get_os_version() >= V_13C75; // 9.2
-                        got_payload:;
+                        if(!got_payload)
+                        {
+                            new_payload = get_os_version() >= V_13C75; // 9.2
+                        }
                     }
                     else
                     {

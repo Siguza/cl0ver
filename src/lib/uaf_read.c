@@ -480,7 +480,7 @@ void uaf_dump_kernel(file_t *file)
                         // On 64-bit, we only need the kernel to gain tfp0 - if people want the full kernel, they
                         // can use kdump after that. So for arm64, only dump __TEXT, __DATA and parts of __PRELINK_TEXT.
 #ifdef __LP64__
-                        bool have = strcmp(seg->segname, "__TEXT") == 0 || strcmp(seg->segname, "__DATA") == 0 || strcmp(seg->segname, "__PRELINK_TEXT") == 0;
+                        bool have = dump_full_kernel || strcmp(seg->segname, "__TEXT") == 0 || strcmp(seg->segname, "__DATA") == 0 || strcmp(seg->segname, "__PRELINK_TEXT") == 0;
                         if(have)
                         {
 #endif
@@ -522,7 +522,7 @@ void uaf_dump_kernel(file_t *file)
                         {
                             mach_seg_t *seg = (mach_seg_t*)cmd;
 #ifdef __LP64__
-                            if(strcmp(seg->segname, "__TEXT") == 0 || strcmp(seg->segname, "__DATA") == 0)
+                            if(dump_full_kernel || strcmp(seg->segname, "__TEXT") == 0 || strcmp(seg->segname, "__DATA") == 0)
                             {
 #endif
                                 DEBUG("Dumping %s...", seg->segname);

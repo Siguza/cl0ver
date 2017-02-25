@@ -5,6 +5,10 @@
 
 #include "common.h"             // addr_t
 
+#ifdef __LP64__
+    extern bool dump_full_kernel;
+#endif
+
 extern addr_t kernel_base;
 
 /* Hardcoded */
