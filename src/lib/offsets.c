@@ -48,10 +48,13 @@ static addr_t reg_anchor(void)
         case M_J85AP  | V_13A452:
         case M_N51AP  | V_13A452:
         case M_N53AP  | V_13A452:
+        case M_N66AP  | V_13A342:
+        case M_N66AP  | V_13A405:
         case M_N66AP  | V_13A452:
         case M_N66mAP | V_13A342:
         case M_N66mAP | V_13A405:
         case M_N66mAP | V_13A452:
+        case M_N71AP  | V_13A342:
         case M_N71AP  | V_13A405:
         case M_N71AP  | V_13A452:
         case M_N71mAP | V_13A342:
@@ -97,10 +100,13 @@ static addr_t reg_vtab(void)
         case M_J85AP  | V_13A452:
         case M_N51AP  | V_13A452:
         case M_N53AP  | V_13A452:
+        case M_N66AP  | V_13A342:
+        case M_N66AP  | V_13A405:
         case M_N66AP  | V_13A452:
         case M_N66mAP | V_13A342:
         case M_N66mAP | V_13A405:
         case M_N66mAP | V_13A452:
+        case M_N71AP  | V_13A342:
         case M_N71AP  | V_13A405:
         case M_N71AP  | V_13A452:
         case M_N71mAP | V_13A342:
