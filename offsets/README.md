@@ -33,7 +33,7 @@ Available offsets:
     </tr>
     <tr>
         <td rowspan="2">iPhone 6s (N71AP)<br>iPhone 6s+ (N66AP)</td>
-        <td>9.0.1</td>
+        <td>9.0<br>9.0.1</td>
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N71AP_13A405/offsets.dat">N71AP_13A405</a></td>
     </tr>
     <tr>
