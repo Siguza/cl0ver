@@ -5,9 +5,9 @@
 	<key>Label</key>
 	<string>net.siguza.cl0ver</string>
 	<key>ProgramArguments</key>
-		<array>
-			<string>/usr/local/bin/cl0ver</string>
-		</array>
+	<array>
+		<string>/usr/local/bin/cl0ver</string>
+	</array>
 	<key>RunAtLoad</key>
 	<true/>
 </dict>
