@@ -23,7 +23,11 @@ Available offsets:
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N51AP_13A452/offsets.dat">N51AP_13A452</a></td>
     </tr>
     <tr>
-        <td rowspan="2">iPhone 6 (N61AP)<br>iPhone 6+ (N56AP)</td>
+        <td rowspan="3">iPhone 6 (N61AP)<br>iPhone 6+ (N56AP)</td>
+        <td>9.0<br>9.0.1</td>
+        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N61AP_13A405/offsets.dat">N61AP_13A405</a></td>
+    </tr>
+    <tr>
         <td>9.0.2</td>
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N61AP_13A452/offsets.dat">N61AP_13A452</a></td>
     </tr>
@@ -53,6 +57,11 @@ Available offsets:
         <td>iPhone SE (N69AP)</td>
         <td>9.3.3</td>
         <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N69AP_13G34/offsets.dat">N69AP_13G34</a></td>
+    </tr>
+    <tr>
+        <td>iPod touch 6G (N102AP)</td>
+        <td>9.0.2</td>
+        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N102AP_13A452/offsets.dat">N102AP_13A452</a></td>
     </tr>
     <tr>
         <td>iPad Air (J71AP)<br>iPad Air (J72AP)</td>
