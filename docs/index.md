@@ -41,7 +41,7 @@ That first step is gonna be a problem because on iOS <10, kernels are encrypted.
 - Get decrypted kernels and hardcode stuff
 - Dump the kernel at runtime
 
-Hardcoding stuff is ugly and there are hardly any decryption keys available for 64-bit devices (although nice work on that iPhone6,1, [@xerub](https://twitter.com/xerub)), therefore the former doesn't seem like such a viable option. Without finding another exploit that allows us to dump the kernel, and without and friends ~~willing~~ capable of providing us with dumped/decrypted kernels, what can we do?  
+Hardcoding stuff is ugly and there are hardly any decryption keys available for 64-bit devices (although nice work on that iPhone6,1, [@xerub](https://twitter.com/xerub)), therefore the former doesn't seem like such a viable option. Without finding another exploit that allows us to dump the kernel, and without any friends ~~willing~~ capable of providing us with dumped/decrypted kernels, what can we do?  
 Well, we can corrupt a string. ;)  
 
 Let's assume for a moment that we can get the kernel to still treat our corrupted string as an instance of `OSString` - then we merely need to change its buffer pointer to wherever we choose, and we can read back arbitrary kernel memory by calling `IORegistryEntryGetProperty` on that property. We're gonna be restricted by the maximum MIG message size so we'll have to do it in chunks, but we can effectively dump the entire kernel this way!  
@@ -648,7 +648,7 @@ Our target is iPod5,1/9.3.2, so let's first look at 9.3.2 for some other devices
             Mem: 0x803e7000-0x803f67a0      File: 0x003e6000-0x003f57a0             __DATA.__const
     $ nm iPhone4,1/kernel | grep __ZTV8OSString
     803ece8c S __ZTV8OSString
-    $ jtool -l -v iPhone4,1/kernel | head -9
+    $ jtool -l -v iPhone5,4/kernel | head -9
     LC 00: LC_SEGMENT               Mem: 0x80001000-0x803ee000      File: 0x0-0x3ed000      r-x/r-x __TEXT
             Mem: 0x80002000-0x8039acc0      File: 0x00001000-0x00399cc0         __TEXT.__text   (Normal)
             Mem: 0x8039acc0-0x803b0c8c      File: 0x00399cc0-0x003afc8c         __TEXT.__const
