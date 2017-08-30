@@ -174,6 +174,7 @@ void off_cfg(const char *dir)
         TRY
         ({
             DEBUG("Checking for config file...");
+            bool got_payload = false;
             FILE *f_cfg = fopen(cfg_file, "r");
             if(f_cfg == NULL)
             {
@@ -195,7 +196,6 @@ void off_cfg(const char *dir)
                             vtab += get_kernel_slide();
                         }
 
-                        bool got_payload = false;
                         addr_t base = 0;
                         if(fscanf(f_cfg, "\n" ADDR, &base) == 1)
                         {
@@ -222,10 +222,6 @@ void off_cfg(const char *dir)
 #endif
                             }
                         }
-                        if(!got_payload)
-                        {
-                            new_payload = get_os_version() >= V_13C75; // 9.2
-                        }
                     }
                     else
                     {
@@ -236,6 +232,11 @@ void off_cfg(const char *dir)
                 ({
                     fclose(f_cfg);
                 })
+            }
+
+            if(!got_payload)
+            {
+                new_payload = get_os_version() >= V_13C75; // 9.2
             }
         })
         FINALLY
