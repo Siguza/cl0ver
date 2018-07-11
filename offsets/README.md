@@ -25,7 +25,7 @@ Available offsets:
     <tr>
         <td rowspan="3">iPhone 6 (N61AP)<br>iPhone 6+ (N56AP)</td>
         <td>9.0<br>9.0.1</td>
-        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N61AP_13A405/offsets.dat">N61AP_13A405</a></td>
+        <td><a href="https://raw.githubusercontent.com/Siguza/cl0ver/master/offsets/N61AP_13A404/offsets.dat">N61AP_13A404</a></td>
     </tr>
     <tr>
         <td>9.0.2</td>
