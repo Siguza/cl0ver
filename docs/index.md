@@ -21,7 +21,7 @@ The following are assumed to be well known/understood, and are explained in deta
 - how the UaF can be used to gain PC control
 
 Note: This project included a lot of "firsts" for me. I've never before: done ROP, played with IOKit, MIG or the kernel heap, etc, etc. As such it might be that this writeup contains some misconceptions or stuff that could be done a lot easier, faster or safer.  
-If you spot anything like that, **please let me know** (via [GitHub issues](https://github.com/Siguza/cl0ver/issues), [Twitter](https://twitter.com/s1guza), Email (`*@*.net` where `* = siguza`), or whatever).  
+If you spot anything like that, **please let me know** (via [GitHub issues](https://github.com/Siguza/cl0ver/issues), [Mastodon](https://mastodon.social/@siguza), Email (`*@*.net` where `* = siguza`), or whatever).  
 Also please don't hesitate to contact me if there's something you don't understand, of if you'd like more details on something.
 
 For the record, I've worked this up on an iPhone SE (iPhone8,4/N69AP) on 9.3.3/13G34 and an iPod touch 5G (iPod5,1/N78AP) on 9.3.2/ with only information and tools that are publicly available (not as an exercise for myself, but because I didn't have anything else, lol).
@@ -1207,7 +1207,7 @@ Glad you stayed with me 'till the end! :D
 And phew, I've learned an insane amount of things while doing this. I had doubts whether I was even gonna make it to the end, but it turns out I did, and I'm glad about that.  
 If you're trying to get into exploitation like me, I can only recommend doing a project like this. Grab some publicly disclosed vulnerabilities that have been fixed in the latest iOS but to which your device is still vulnerable, start playing around with them, and see what you can get out of it. No amount of reading could replace such an experience. :)
 
-Now, I will definitely continue to poke around in iOS, and if you're interested in reading about it, you can [follow me on Twitter](https://twitter.com/s1guza).  
+Now, I will definitely continue to poke around in iOS, and if you're interested in reading about it, you can follow me on ~~Twitter~~ [Mastodon](https://mastodon.social/@siguza).  
 And as stated at the beginning, please feel free to reach out to me if you have any kind of comments or questions. :)
 
 Anything left to say?
